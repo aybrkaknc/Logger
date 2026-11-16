@@ -1,0 +1,13 @@
+version: 3.0.3
+apkFileName: phone_base.apk
+usesFramework:
+  ids:
+  - 1
+sdkInfo:
+  minSdkVersion: 29
+  targetSdkVersion: 33
+resourcesInfo:
+  packageId: 127
+doNotCompress:
+- arsc
+- dex

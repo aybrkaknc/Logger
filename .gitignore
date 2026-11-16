@@ -1,0 +1,6 @@
+original/
+build/
+dist/
+*.apk
+*.keystore
+*.jks

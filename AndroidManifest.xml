@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest android:compileSdkVersion="36" android:compileSdkVersionCodename="16" package="local.gmslogger" platformBuildVersionCode="36" platformBuildVersionName="16"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+    <queries>
+        <package android:name="moe.shizuku.privileged.api" />
+    </queries>
+    <application android:theme="@android:style/Theme.Material.NoActionBar" android:label="@string/app_name" android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="moe.shizuku.client.V3_SUPPORT" android:value="true" />
+        <provider android:name="rikka.shizuku.ShizukuProvider" android:enabled="true" android:exported="true" android:multiprocess="false" android:authorities="local.gmslogger.shizuku" />
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <service android:name=".LogService" />
+        <activity android:name=".SettingsActivity" android:exported="false" />
+        <activity android:name=".FilterActivity" android:exported="false" />
+    </application>
+</manifest>

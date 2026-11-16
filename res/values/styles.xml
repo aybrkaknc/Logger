@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="EntryMenuAnim">
+        <item name="android:windowEnterAnimation">@anim/menu_in</item>
+        <item name="android:windowExitAnimation">@anim/menu_out</item>
+    </style>
+    <style name="LoggerDialog" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:textColorPrimary">#ff33ff33</item>
+        <item name="android:textColorSecondary">#ff1fa02b</item>
+        <item name="android:textColorPrimaryInverse">#ff0a0a0a</item>
+        <item name="android:windowBackground">@drawable/dialog_bg</item>
+        <item name="android:colorControlNormal">#ff33ff33</item>
+        <item name="android:colorControlActivated">#ff33ff33</item>
+        <item name="android:colorAccent">#ff33ff33</item>
+    </style>
+</resources>

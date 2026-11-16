@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_gms">Google Play Services</string>
+    <string name="app_name">Logger</string>
+    <string name="app_vending">Play Store</string>
+    <string name="close">Close</string>
+    <string name="copied">Copied</string>
+    <string name="copy_entry">Copy</string>
+    <string name="explain_anr">App stopped responding (ANR)</string>
+    <string name="explain_crash">App crashed</string>
+    <string name="explain_db">The app database file was corrupted or moved</string>
+    <string name="explain_died">Process ended</string>
+    <string name="export">Export</string>
+    <string name="export_all">All recorded logs (raw)</string>
+    <string name="export_failed">Export failed</string>
+    <string name="export_filtered">Filtered logs</string>
+    <string name="export_title">Export log</string>
+    <string name="exported">Saved: %1$s</string>
+    <string name="file_info">File: %1$s</string>
+    <string name="filter_active">FILTERED</string>
+    <string name="filter_all_apps">All apps</string>
+    <string name="filter_app_search">Search apps</string>
+    <string name="filter_apps_count">%1$d apps</string>
+    <string name="filter_levels">Level</string>
+    <string name="filter_none">UNFILTERED</string>
+    <string name="filter_save">Save filtered logs</string>
+    <string name="filter_show_system">Show system apps</string>
+    <string name="filter_text_hint">Search text</string>
+    <string name="filter_title">Filter</string>
+    <string name="invalid_size">Enter a value between 10 and 20480</string>
+    <string name="legend">Red: error Yellow: warning Green: info</string>
+    <string name="lvl_error">ERROR</string>
+    <string name="lvl_info">INFO</string>
+    <string name="lvl_warn">WARNING</string>
+    <string name="max_size_hint">Default 1024 MB. When the limit is reached, the oldest half is removed.</string>
+    <string name="max_size_label">Max log size (MB, applies to both logs)</string>
+    <string name="notif_text">Logs are being recorded</string>
+    <string name="notif_title">Logger</string>
+    <string name="prompt_template">"Explain this Android log entry, state the likely causes and what should be done:
+
+%1$s"</string>
+    <string name="save">Save</string>
+    <string name="saved">Saved</string>
+    <string name="select_text">Select text</string>
+    <string name="settings_title">Settings</string>
+    <string name="share_title">Ask an AI app</string>
+    <string name="start">Start</string>
+    <string name="state_off">LOGGER</string>
+    <string name="state_on">LOGGER</string>
+    <string name="stop">Stop</string>
+</resources>
