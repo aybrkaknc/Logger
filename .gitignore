@@ -1,6 +1,23 @@
-original/
+legacy/
+.superpowers/
+
+# Gradle / Android Studio
+.gradle/
 build/
-dist/
-*.apk
-*.keystore
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing
+keystore.properties
 *.jks
+*.keystore
+
+# Outputs
+*.apk
+*.aab
+*.idsig

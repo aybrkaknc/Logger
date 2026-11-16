@@ -7,7 +7,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/aybrkaknc/Logger">
-    <img src="icons/ic_launcher.png" alt="Logger" width="80" height="80">
+    <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Logger" width="80" height="80">
   </a>
 
   <h3 align="center">Logger</h3>
@@ -47,22 +47,22 @@
 
 Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmenizi ve dışa aktarmanızı sağlar. Logları Shizuku üzerinden okur, bu yüzden root gerekmez.
 
-* Tek düğmeyle kaydı başlat ve durdur; kayıt durunca bildirim görünür
-* Uygulamaya, seviyeye (hata, uyarı, bilgi) göre süz; istenirse sistem uygulamalarını gizle
-* Log satırı biçimi: `[SS:DD:SS] - [SEVİYE] - [Uygulama]`
+* Kaydı tek düğmeyle ya da bildirimden başlat ve durdur
+* Uygulamaya ve seviyeye (hata, uyarı, bilgi) göre süz; istenirse sistem uygulamalarını da dahil et
+* Log satırı biçimi: `SS:DD:SS - SEVİYE - Uygulama`; çökme ve ANR için kısa açıklamalar
 * Ayarlanabilir en yüksek log boyutu (1-10 GB) ve log yazı boyutu
 * Logları sistem dosya seçicisiyle seçilen klasöre dışa aktar
 * İngilizce ve Türkçe arayüz
 
-Bu depo uygulamanın apktool ile çözülmüş kaynağını içerir: smali, kaynaklar ve varlıklar.
+0.1.0 sürümü Kotlin ve Jetpack Compose ile baştan yazıldı. Eski uygulama apktool ile çözülmüş bir smali projesiydi.
 
 <p align="right">(<a href="#readme-top">başa dön</a>)</p>
 
 ### Kullanılan Araçlar
 
-* [apktool](https://apktool.org/)
+* [Kotlin](https://kotlinlang.org/)
+* [Jetpack Compose](https://developer.android.com/compose)
 * [Shizuku](https://shizuku.rikka.app/)
-* Smali / Android kaynakları
 
 <p align="right">(<a href="#readme-top">başa dön</a>)</p>
 
@@ -72,8 +72,7 @@ Bu depo uygulamanın apktool ile çözülmüş kaynağını içerir: smali, kayn
 
 * Android 10 (API 29) veya üzeri
 * [Shizuku](https://shizuku.rikka.app/) kurulu ve çalışır durumda
-* Derlemek için Java, [apktool](https://apktool.org/) 3.0.3 ve [uber-apk-signer](https://github.com/patrickfav/uber-apk-signer)
-* Kurulum için `adb`
+* Derlemek için JDK 17 veya üzeri ve Android SDK (platform 36)
 
 ### Kurulum
 
@@ -82,39 +81,36 @@ Bu depo uygulamanın apktool ile çözülmüş kaynağını içerir: smali, kayn
    git clone https://github.com/aybrkaknc/Logger.git
    cd Logger
    ```
-2. APK'yı derleyin
+2. Debug APK derleyin
    ```sh
-   java -jar apktool.jar b . -o rebuilt.apk
+   ./gradlew assembleDebug
    ```
-3. İmzalayın
+3. Kurun
    ```sh
-   java -jar uber.jar --apks rebuilt.apk --allowResign -o signed
+   adb install -r app/build/outputs/apk/debug/app-debug.apk
    ```
-4. Kurun
-   ```sh
-   adb install -r signed/rebuilt-aligned-debugSigned.apk
-   ```
-5. Logger'ı açın ve Shizuku iznini verin
+
+İmzalı release derlemesi için `keystore.properties.example` dosyasını `keystore.properties` olarak kopyalayın, kendi keystore yolunuzu ve şifrelerinizi yazın, ardından `./gradlew assembleRelease` çalıştırın. `keystore.properties` git dışında tutulur.
 
 <p align="right">(<a href="#readme-top">başa dön</a>)</p>
 
 ## Kullanım
 
 1. Shizuku'yu başlatın.
-2. Logger'ı açın ve kayıt düğmesine basın.
+2. Logger'ı açıp kayıt düğmesine basın, ardından Shizuku iznini verin.
 3. Filtre ekranından logları uygulamaya veya seviyeye göre daraltın.
-4. Durdurun; bildirim siz kapatana kadar kalır.
+4. Kaydı uygulamadan ya da bildirimden durdurun veya devam ettirin.
 5. Dışa aktar düğmesiyle logu seçtiğiniz klasöre kaydedin.
 
 <p align="right">(<a href="#readme-top">başa dön</a>)</p>
 
 ## Yol Haritası
 
-- [x] Filtre ekranı (uygulama, seviye, sistem uygulamaları)
-- [x] Durdurma bildirimi
-- [ ] Bildirime tıklayınca uygulamayı aç
-- [ ] Başlığın yanında koşan kedi animasyonu
-- [ ] Kullanılmayan kodu temizle (`CatPatrol`, `CatFlip`, eski dialog yardımcıları)
+- [x] Proje kurulumu (Kotlin, Compose, Gradle)
+- [ ] Log ayrıştırma ve filtreleme
+- [ ] Shizuku ve bildirimlerle kayıt servisi
+- [ ] Ana ekran, filtre ve ayarlar ekranları
+- [ ] Dışa aktarma
 
 Daha fazlası için [açık sorunlara](https://github.com/aybrkaknc/Logger/issues) bakın.
 
@@ -132,7 +128,11 @@ Daha fazlası için [açık sorunlara](https://github.com/aybrkaknc/Logger/issue
 
 ## Lisans
 
-Henüz bir lisans belirtilmedi.
+Uygulama kodu için henüz bir lisans belirtilmedi.
+
+Pakete dahil fontlar:
+* JetBrains Mono, SIL Open Font License 1.1 (`app/src/main/assets/licenses/JetBrainsMono-OFL.txt`)
+* Pixel Operator Mono
 
 <p align="right">(<a href="#readme-top">başa dön</a>)</p>
 

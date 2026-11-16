@@ -7,7 +7,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/aybrkaknc/Logger">
-    <img src="icons/ic_launcher.png" alt="Logger" width="80" height="80">
+    <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Logger" width="80" height="80">
   </a>
 
   <h3 align="center">Logger</h3>
@@ -47,22 +47,22 @@
 
 Logger records the device logcat in a foreground service and lets you filter and export it. It reads logs through Shizuku, so no root is needed.
 
-* Start and stop recording with one button; a notification tells you when recording stops
-* Filter by app, by level (error, warning, info) and optionally hide system apps
-* Log line format: `[HH:MM:SS] - [LEVEL] - [App]`
+* Start and stop recording with one button or from the notification
+* Filter by app and by level (error, warning, info), optionally including system apps
+* Log line format: `HH:MM:SS - LEVEL - App`, with short explanations for crashes and ANRs
 * Configurable maximum log size (1-10 GB) and log text size
 * Export logs to a folder chosen with the system file picker
 * English and Turkish UI
 
-This repository holds the decoded (apktool) source of the app: smali, resources and assets.
+Version 0.1.0 is a full rewrite in Kotlin and Jetpack Compose. The old app was an apktool-decoded smali project.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Built With
 
-* [apktool](https://apktool.org/)
+* [Kotlin](https://kotlinlang.org/)
+* [Jetpack Compose](https://developer.android.com/compose)
 * [Shizuku](https://shizuku.rikka.app/)
-* Smali / Android resources
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -72,8 +72,7 @@ This repository holds the decoded (apktool) source of the app: smali, resources 
 
 * Android 10 (API 29) or newer
 * [Shizuku](https://shizuku.rikka.app/) installed and running
-* Java, [apktool](https://apktool.org/) 3.0.3 and [uber-apk-signer](https://github.com/patrickfav/uber-apk-signer) to build
-* `adb` to install
+* JDK 17 or newer and the Android SDK (platform 36) to build
 
 ### Installation
 
@@ -82,39 +81,36 @@ This repository holds the decoded (apktool) source of the app: smali, resources 
    git clone https://github.com/aybrkaknc/Logger.git
    cd Logger
    ```
-2. Build the APK
+2. Build a debug APK
    ```sh
-   java -jar apktool.jar b . -o rebuilt.apk
+   ./gradlew assembleDebug
    ```
-3. Sign it
+3. Install it
    ```sh
-   java -jar uber.jar --apks rebuilt.apk --allowResign -o signed
+   adb install -r app/build/outputs/apk/debug/app-debug.apk
    ```
-4. Install it
-   ```sh
-   adb install -r signed/rebuilt-aligned-debugSigned.apk
-   ```
-5. Open Logger and grant the Shizuku permission
+
+For a signed release build, copy `keystore.properties.example` to `keystore.properties`, fill in your own keystore path and passwords, then run `./gradlew assembleRelease`. `keystore.properties` is git-ignored.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Usage
 
 1. Start Shizuku.
-2. Open Logger and press the record button.
+2. Open Logger and press the record button, then grant the Shizuku permission.
 3. Use the filter screen to narrow logs by app or level.
-4. Press stop; the notification stays until you dismiss it.
+4. Stop or resume recording from the app or the notification.
 5. Use the export button to save the log to a folder you pick.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Roadmap
 
-- [x] Filter screen (app, level, system apps)
-- [x] Stop notification
-- [ ] Open the app when tapping the notification
-- [ ] Running cat animation next to the title
-- [ ] Clean up unused code (`CatPatrol`, `CatFlip`, old dialog helpers)
+- [x] Project setup (Kotlin, Compose, Gradle)
+- [ ] Log parsing and filtering
+- [ ] Recording service with Shizuku and notifications
+- [ ] Main, filter and settings screens
+- [ ] Export
 
 See the [open issues](https://github.com/aybrkaknc/Logger/issues) for more.
 
@@ -132,7 +128,11 @@ See the [open issues](https://github.com/aybrkaknc/Logger/issues) for more.
 
 ## License
 
-No license has been specified yet.
+No license has been specified yet for the app code.
+
+Bundled fonts:
+* JetBrains Mono, SIL Open Font License 1.1 (`app/src/main/assets/licenses/JetBrainsMono-OFL.txt`)
+* Pixel Operator Mono
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

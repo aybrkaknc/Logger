@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Logger</string>
+    <string name="title_main">LOGGER</string>
+
+    <!-- Main screen -->
+    <string name="filter_active">FİLTRELİ</string>
+    <string name="filter_none">FİLTRESİZ</string>
+    <string name="filter_text_hint">Metin ara</string>
+    <string name="empty_logs">Henüz log yok.\nKaydı başlatmak için başlat düğmesine bas.</string>
+    <string name="shizuku_ok">SHIZUKU</string>
+    <string name="shizuku_missing">SHIZUKU YOK</string>
+    <string name="shizuku_not_running">Shizuku çalışmıyor.\nÖnce Shizuku\'yu başlat.</string>
+    <string name="shizuku_denied">Shizuku izni verilmedi.</string>
+    <string name="action_start">Kaydı başlat</string>
+    <string name="action_stop">Kaydı durdur</string>
+    <string name="action_filter">Filtre</string>
+    <string name="action_search">Ara</string>
+    <string name="action_export">Dışa aktar</string>
+    <string name="action_settings">Ayarlar</string>
+    <string name="action_back">Geri</string>
+
+    <!-- Entry menu -->
+    <string name="copy_entry">Kopyala</string>
+    <string name="copied">Kopyalandı</string>
+    <string name="select_text">Metin seç</string>
+    <string name="share_title">Yapay zekaya sor</string>
+    <string name="close">Kapat</string>
+    <string name="prompt_template">Bu Android log kaydını Türkçe açıkla, olası nedenlerini ve yapılması gerekenleri yaz:\n\n%1$s</string>
+
+    <!-- Levels and explanations -->
+    <string name="lvl_error">HATA</string>
+    <string name="lvl_warn">UYARI</string>
+    <string name="lvl_info">BİLGİ</string>
+    <string name="explain_crash">Uygulama çöktü</string>
+    <string name="explain_anr">Uygulama yanıt vermedi (ANR)</string>
+    <string name="explain_db">Uygulamanın veritabanı dosyası bozulmuş ya da taşınmış</string>
+    <string name="explain_died">Süreç sonlandı</string>
+    <string name="app_gms">Google Play Hizmetleri</string>
+    <string name="app_vending">Play Store</string>
+
+    <!-- Filter screen -->
+    <string name="filter_title">Filtre</string>
+    <string name="filter_app_search">Uygulama ara</string>
+    <string name="filter_show_system">Sistem uygulamalarını göster</string>
+    <string name="filter_selected">SEÇİLİ (%1$d)</string>
+    <string name="filter_all_apps">TÜM UYGULAMALAR</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ayarlar</string>
+    <string name="settings_max_size">Maksimum log boyutu</string>
+    <string name="settings_font_size">Log yazı boyutu (sp)</string>
+    <string name="settings_output">Çıktı klasörü</string>
+    <string name="size_gb">%1$d GB</string>
+    <string name="save">Kaydet</string>
+
+    <!-- Export -->
+    <string name="export_title">Logu dışa aktar</string>
+    <string name="export_all">Tüm kayıtlı loglar (ham)</string>
+    <string name="export_filtered">Filtreli loglar</string>
+    <string name="exported">Kaydedildi: %1$s</string>
+    <string name="export_failed">Dışa aktarma başarısız</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel">Kayıt</string>
+    <string name="notif_title">Logger</string>
+    <string name="notif_text">Loglar kaydediliyor</string>
+    <string name="notif_stopped">Log kaydı durduruldu</string>
+    <string name="notif_action_stop">Durdur</string>
+    <string name="notif_action_resume">Devam et</string>
+</resources>
