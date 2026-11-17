@@ -3,6 +3,7 @@ package com.aybrkaknc.logger.settings
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.aybrkaknc.logger.log.LogLine
 
 class Prefs(context: Context) {
     private val settings = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -54,8 +55,9 @@ class Prefs(context: Context) {
         const val DEFAULT_FONT_SP = 14
         const val FONT_MIN = 8
         const val FONT_MAX = 20
-        const val DEFAULT_LEVELS = 3
+        // Unfiltered by default: every level, every app.
+        const val DEFAULT_LEVELS = LogLine.ALL
         const val EXPORT_DIR = "Documents/Logs"
-        val DEFAULT_PACKAGES = setOf("com.google.android.gms", "com.android.vending")
+        val DEFAULT_PACKAGES = emptySet<String>()
     }
 }
