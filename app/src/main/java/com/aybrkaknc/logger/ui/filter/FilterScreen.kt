@@ -1,0 +1,194 @@
+package com.aybrkaknc.logger.ui.filter
+
+import android.content.pm.ApplicationInfo
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toBitmap
+import com.aybrkaknc.logger.R
+import com.aybrkaknc.logger.log.LogLine
+import com.aybrkaknc.logger.settings.Prefs
+import com.aybrkaknc.logger.ui.LoggerField
+import com.aybrkaknc.logger.ui.ScreenHeader
+import com.aybrkaknc.logger.ui.theme.JetBrainsMono
+import com.aybrkaknc.logger.ui.theme.LoggerColors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.Locale
+
+private class AppInfo(val pkg: String, val label: String, val system: Boolean)
+
+@Composable
+fun FilterScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val prefs = remember { Prefs(context) }
+    var packages by remember { mutableStateOf(prefs.packages) }
+    var levels by remember { mutableIntStateOf(prefs.levels) }
+    var showSystem by remember { mutableStateOf(prefs.showSystem) }
+    var query by rememberSaveable { mutableStateOf("") }
+
+    val apps by produceState(emptyList<AppInfo>()) {
+        value = withContext(Dispatchers.IO) {
+            val pm = context.packageManager
+            pm.getInstalledApplications(0).map {
+                val system = it.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                AppInfo(it.packageName, pm.getApplicationLabel(it).toString(), system)
+            }.sortedBy { it.label.lowercase(Locale.ROOT) }
+        }
+    }
+
+    val q = query.trim().lowercase(Locale.ROOT)
+    val selected = apps.filter { it.pkg in packages }
+    val others = apps.filter {
+        it.pkg !in packages && (!it.system || showSystem) &&
+            (q.isEmpty() || it.label.lowercase(Locale.ROOT).contains(q) || it.pkg.contains(q))
+    }
+
+    fun togglePackage(pkg: String) {
+        packages = if (pkg in packages) packages - pkg else packages + pkg
+        prefs.packages = packages
+    }
+
+    Column(Modifier.fillMaxSize().background(LoggerColors.Bg)) {
+        ScreenHeader(stringResource(R.string.filter_title), onBack)
+        LazyColumn(Modifier.fillMaxSize().navigationBarsPadding()) {
+            item {
+                LoggerField(query, { query = it }, stringResource(R.string.filter_app_search), Modifier.padding(16.dp, 12.dp))
+            }
+            item {
+                Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for ((bit, label) in listOf(LogLine.ERROR to R.string.lvl_error, LogLine.WARN to R.string.lvl_warn, LogLine.INFO to R.string.lvl_info)) {
+                        LevelChip(stringResource(label), levels and bit != 0, Modifier.weight(1f)) {
+                            levels = levels xor bit
+                            prefs.levels = levels
+                        }
+                    }
+                }
+            }
+            item {
+                CheckRow(stringResource(R.string.filter_show_system), showSystem) {
+                    showSystem = !showSystem
+                    prefs.showSystem = showSystem
+                }
+            }
+            item { Section(stringResource(R.string.filter_selected, selected.size)) }
+            items(selected, key = { "s:" + it.pkg }) { AppRow(it, true) { togglePackage(it.pkg) } }
+            item { Section(stringResource(R.string.filter_all_apps)) }
+            items(others, key = { "a:" + it.pkg }) { AppRow(it, false) { togglePackage(it.pkg) } }
+        }
+    }
+}
+
+@Composable
+private fun LevelChip(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier.clip(shape)
+            .border(1.dp, if (on) LoggerColors.Fg else LoggerColors.Dim, shape)
+            .background(if (on) LoggerColors.Fg else LoggerColors.Bg)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            color = if (on) LoggerColors.Bg else LoggerColors.Dim,
+            fontFamily = JetBrainsMono,
+            fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+@Composable
+private fun CheckBoxMark(on: Boolean) {
+    val shape = RoundedCornerShape(3.dp)
+    Box(
+        Modifier.size(18.dp).border(1.5.dp, LoggerColors.Fg, shape).background(if (on) LoggerColors.Fg else LoggerColors.Bg, shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (on) Text("✓", color = LoggerColors.Bg, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun CheckRow(label: String, on: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CheckBoxMark(on)
+        Spacer(Modifier.width(12.dp))
+        Text(label, color = LoggerColors.Fg, fontFamily = JetBrainsMono, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun Section(title: String) {
+    Text(
+        title,
+        color = LoggerColors.Dim,
+        fontFamily = JetBrainsMono,
+        fontSize = 11.sp,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+    )
+}
+
+@Composable
+private fun AppRow(app: AppInfo, checked: Boolean, onClick: () -> Unit) {
+    val context = LocalContext.current
+    val icon by produceState<ImageBitmap?>(null, app.pkg) {
+        value = withContext(Dispatchers.IO) {
+            runCatching { context.packageManager.getApplicationIcon(app.pkg).toBitmap(72, 72).asImageBitmap() }.getOrNull()
+        }
+    }
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(LoggerColors.Panel)) {
+            icon?.let { Image(it, null, Modifier.size(28.dp)) }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(app.label, color = LoggerColors.Fg, fontFamily = JetBrainsMono, fontSize = 13.sp)
+            Text(app.pkg, color = LoggerColors.Dim, fontFamily = JetBrainsMono, fontSize = 10.sp)
+        }
+        CheckBoxMark(checked)
+    }
+}

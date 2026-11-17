@@ -107,10 +107,11 @@ For a signed release build, copy `keystore.properties.example` to `keystore.prop
 ## Roadmap
 
 - [x] Project setup (Kotlin, Compose, Gradle)
-- [ ] Log parsing and filtering
-- [ ] Recording service with Shizuku and notifications
-- [ ] Main, filter and settings screens
-- [ ] Export
+- [x] Log parsing and filtering
+- [x] Recording service with Shizuku and notifications
+- [x] Main, filter and settings screens
+- [x] Export
+- [ ] On-device testing and polish
 
 See the [open issues](https://github.com/aybrkaknc/Logger/issues) for more.
 

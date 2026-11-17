@@ -107,10 +107,11 @@ Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmen
 ## Yol Haritası
 
 - [x] Proje kurulumu (Kotlin, Compose, Gradle)
-- [ ] Log ayrıştırma ve filtreleme
-- [ ] Shizuku ve bildirimlerle kayıt servisi
-- [ ] Ana ekran, filtre ve ayarlar ekranları
-- [ ] Dışa aktarma
+- [x] Log ayrıştırma ve filtreleme
+- [x] Shizuku ve bildirimlerle kayıt servisi
+- [x] Ana ekran, filtre ve ayarlar ekranları
+- [x] Dışa aktarma
+- [ ] Cihaz üzerinde test ve cila
 
 Daha fazlası için [açık sorunlara](https://github.com/aybrkaknc/Logger/issues) bakın.
 
