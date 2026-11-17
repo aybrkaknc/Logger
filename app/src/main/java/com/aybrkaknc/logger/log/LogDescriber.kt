@@ -16,7 +16,13 @@ data class LogEntry(
     val app: String,
     @param:StringRes val explain: Int?,
     val stack: List<String> = emptyList(),
+    val appColor: Color = LoggerColors.Fg,
 )
+
+// Same app always gets the same hue, so its rows are easy to follow while scanning.
+private val appPalette = listOf(LoggerColors.Fg, LoggerColors.Cyan, LoggerColors.AppPurple, LoggerColors.AppOrange)
+
+fun appColorFor(app: String): Color = appPalette[Math.floorMod(app.hashCode(), appPalette.size)]
 
 class LogDescriber(private val context: Context) {
     private val names = ConcurrentHashMap<Int, String>()
@@ -28,10 +34,13 @@ class LogDescriber(private val context: Context) {
         val (label, color) = when {
             level == "E" || level == "F" -> R.string.lvl_error to LoggerColors.Red
             level == "W" || line.contains("died") -> R.string.lvl_warn to LoggerColors.Yellow
+            level == "D" -> R.string.lvl_debug to LoggerColors.Cyan
+            level == "V" -> R.string.lvl_verbose to LoggerColors.Gray
             else -> R.string.lvl_info to LoggerColors.Fg
         }
         val explain = PATTERNS.firstOrNull { line.contains(it.first) }?.second
-        return LogEntry(line, LogLine.time(line), label, color, appName(line), explain)
+        val app = appName(line)
+        return LogEntry(line, LogLine.time(line), label, color, app, explain, appColor = appColorFor(app))
     }
 
     private fun appName(line: String): String {

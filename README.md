@@ -44,13 +44,16 @@
 
 ## About The Project
 
-Logger records the device logcat in a foreground service and lets you filter and export it. It reads logs through Shizuku, so no root is needed.
+Logger records the device logcat in a foreground service and lets you filter, save and browse it. It reads logs through Shizuku, so no root is needed.
 
 * Start and stop recording with one button or from the notification
 * Filter by app and by level (error, warning, info), optionally including system apps
 * Log line format: `HH:MM:SS - LEVEL - App`, with short explanations for crashes and ANRs
 * Configurable maximum log size (1-10 GB) and log text size
-* Export logs to a folder chosen with the system file picker
+* Save logs to the folder you choose, one file per recording and buffer
+* Record extra buffers (radio, events, security, stats) and view each as a tab; ALL merges every open buffer
+* Save a snapshot of a running recording without stopping it
+* Browse, search, share and delete saved logs inside the app
 * English and Turkish UI
 
 Version 0.2.0 is a full rewrite in Kotlin and Jetpack Compose. The old app was an apktool-decoded smali project.
@@ -99,7 +102,9 @@ For a signed release build, copy `keystore.properties.example` to `keystore.prop
 2. Open Logger and press the record button, then grant the Shizuku permission.
 3. Use the filter screen to narrow logs by app or level.
 4. Stop or resume recording from the app or the notification.
-5. Use the export button to save the log to a folder you pick.
+5. Pick extra buffers in Settings and switch between the tabs on the main screen.
+6. Use the save button while recording to copy the logs so far to the output folder.
+7. Open the folder icon to browse, search, share or delete saved logs.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

@@ -52,6 +52,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +67,7 @@ import kotlinx.coroutines.delay
 fun LogRow(
     entry: LogEntry,
     fontSp: Int,
+    singleLine: Boolean = false,
     query: String,
     current: Boolean,
     modifier: Modifier = Modifier,
@@ -85,18 +87,18 @@ fun LogRow(
     val toggle by rememberUpdatedState(onToggleSelect)
     val sel by animateFloatAsState(if (pressed || menu || selected) 1f else 0f, tween(220), label = "sel")
 
-    val header = buildString {
-        append(entry.time).append(" - ").append(stringResource(entry.levelLabel))
-        if (entry.app.isNotEmpty()) append(" - ").append(entry.app)
-    }
+    val head = entry.time + " - " + stringResource(entry.levelLabel)
+    val header = if (entry.app.isNotEmpty()) "$head - ${entry.app}" else head
     val explain = entry.explain?.let { stringResource(it) }
 
     Box(modifier.fillMaxWidth().padding(bottom = 12.dp).onSizeChanged { rowWidth = it.width }) {
         Column(Modifier.fillMaxWidth()) {
             Text(
-                text = describe(header, explain, entry, sel, fontSp, query, current),
+                text = describe(head, explain, entry, sel, fontSp, query, current),
                 fontFamily = JetBrainsMono,
                 fontSize = fontSp.sp,
+                maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth()
                     .background(lerp(Color.Transparent, LoggerColors.Hint, sel), RoundedCornerShape(4.dp))
                     .pointerInput(entry.raw, selectionMode) {
@@ -160,7 +162,7 @@ fun LogRow(
                     MenuItemDivider()
                     MenuItem(R.string.select_text) { menu = false; selectDialog = true }
                     MenuItemDivider()
-                    MenuItem(R.string.share_title) { menu = false; share(context, entry.raw) }
+                    MenuItem(R.string.action_share) { menu = false; share(context, entry.raw) }
                 }
             }
         }
@@ -228,7 +230,7 @@ private fun AnnotatedString.Builder.appendMarked(text: String, query: String, ma
 }
 
 private fun describe(
-    header: String,
+    head: String,
     explain: String?,
     entry: LogEntry,
     sel: Float,
@@ -240,7 +242,10 @@ private fun describe(
     val bodyColor = lerp(LoggerColors.Dim, LoggerColors.Bg, sel)
     return buildAnnotatedString {
         withStyle(SpanStyle(color = LoggerColors.Dim)) { append("> ") }
-        withStyle(SpanStyle(color = headerColor, fontWeight = FontWeight.Bold)) { append(header) }
+        withStyle(SpanStyle(color = headerColor, fontWeight = FontWeight.Bold)) { append(head) }
+        if (entry.app.isNotEmpty()) {
+            withStyle(SpanStyle(color = lerp(entry.appColor, LoggerColors.Bg, sel), fontWeight = FontWeight.Bold)) { append(" - ${entry.app}") }
+        }
         if (explain != null) withStyle(SpanStyle(color = headerColor)) { append("\n$explain") }
         withStyle(SpanStyle(color = bodyColor, fontSize = (fontSp * 0.8f).sp)) {
             append("\n")
@@ -258,5 +263,5 @@ private fun copy(context: Context, raw: String) {
 private fun share(context: Context, raw: String) {
     val send = Intent(Intent.ACTION_SEND).setType("text/plain")
         .putExtra(Intent.EXTRA_TEXT, context.getString(R.string.prompt_template, raw))
-    context.startActivity(Intent.createChooser(send, context.getString(R.string.share_title)))
+    context.startActivity(Intent.createChooser(send, context.getString(R.string.action_share)))
 }

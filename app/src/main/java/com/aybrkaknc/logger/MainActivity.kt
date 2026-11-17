@@ -13,19 +13,23 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.aybrkaknc.logger.service.LogService
 import com.aybrkaknc.logger.settings.Prefs
 import com.aybrkaknc.logger.service.ShizukuLogcat
 import com.aybrkaknc.logger.service.ShizukuStatus
+import com.aybrkaknc.logger.log.LogFileItem
+import com.aybrkaknc.logger.ui.files.FilesScreen
+import com.aybrkaknc.logger.ui.files.LogFileScreen
 import com.aybrkaknc.logger.ui.filter.FilterScreen
 import com.aybrkaknc.logger.ui.main.MainScreen
 import com.aybrkaknc.logger.ui.settings.SettingsScreen
 import com.aybrkaknc.logger.ui.theme.LoggerTheme
 import rikka.shizuku.Shizuku
 
-private enum class Screen { Main, Filter, Settings }
+private enum class Screen { Main, Filter, Settings, Files, LogFile }
 
 class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
@@ -61,6 +65,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             LoggerTheme {
                 var screen by rememberSaveable { mutableStateOf(Screen.Main) }
+                var openFile by remember { mutableStateOf<LogFileItem?>(null) }
                 BackHandler(enabled = screen != Screen.Main) { screen = Screen.Main }
                 when (screen) {
                     Screen.Main -> MainScreen(
@@ -68,9 +73,15 @@ class MainActivity : ComponentActivity() {
                         onToggle = ::toggleRecording,
                         onOpenFilter = { screen = Screen.Filter },
                         onOpenSettings = { screen = Screen.Settings },
+                        onOpenFiles = { screen = Screen.Files },
                     )
                     Screen.Filter -> FilterScreen(onBack = { screen = Screen.Main })
                     Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Main })
+                    Screen.Files -> FilesScreen(
+                        onBack = { screen = Screen.Main },
+                        onOpen = { openFile = it; screen = Screen.LogFile },
+                    )
+                    Screen.LogFile -> openFile?.let { LogFileScreen(it, onBack = { screen = Screen.Files }) }
                 }
             }
         }

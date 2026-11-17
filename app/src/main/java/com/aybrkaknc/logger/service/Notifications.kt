@@ -12,6 +12,8 @@ import com.aybrkaknc.logger.R
 object Notifications {
     const val ID_RECORDING = 1
     const val ID_STOPPED = 2
+    const val ID_CRASH = 3
+    private const val CHANNEL_CRASH = "crash"
     private const val CHANNEL = "recording"
 
     private fun manager(context: Context) = context.getSystemService(NotificationManager::class.java)
@@ -63,4 +65,20 @@ object Notifications {
     }
 
     fun cancelStopped(context: Context) = manager(context).cancel(ID_STOPPED)
+
+    // High-priority alert for FATAL EXCEPTION / ANR lines; tapping opens the app.
+    fun crash(context: Context, line: String) {
+        manager(context).createNotificationChannel(
+            NotificationChannel(CHANNEL_CRASH, context.getString(R.string.notif_crash_channel), NotificationManager.IMPORTANCE_HIGH),
+        )
+        val n = Notification.Builder(context, CHANNEL_CRASH)
+            .setSmallIcon(R.drawable.ic_stop)
+            .setContentTitle(context.getString(R.string.notif_crash_title))
+            .setContentText(line.takeLast(200))
+            .setStyle(Notification.BigTextStyle().bigText(line))
+            .setContentIntent(openApp(context))
+            .setAutoCancel(true)
+            .build()
+        manager(context).notify(ID_CRASH, n)
+    }
 }

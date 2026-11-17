@@ -62,15 +62,17 @@ fun IconBtn(@DrawableRes icon: Int, @StringRes desc: Int, onClick: () -> Unit, t
 }
 
 @Composable
-fun ScreenHeader(title: String, onBack: () -> Unit) {
+fun ScreenHeader(title: String, onBack: () -> Unit, action: (@Composable () -> Unit)? = null) {
     Row(
-        Modifier.fillMaxWidth().background(LoggerColors.Panel).statusBarsPadding()
+        Modifier.fillMaxWidth().statusBarsPadding()
             .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconBtn(R.drawable.ic_back, R.string.action_back, onBack)
         Spacer(Modifier.width(8.dp))
         Text(title, style = TitleStyle)
+        Spacer(Modifier.weight(1f))
+        action?.invoke()
     }
 }
 

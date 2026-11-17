@@ -7,7 +7,7 @@
     <string name="filter_active">FİLTRELİ</string>
     <string name="filter_none">FİLTRESİZ</string>
     <string name="filter_text_hint">Metin ara</string>
-    <string name="empty_logs">Henüz log yok.\nKaydı başlatmak için başlat düğmesine bas.</string>
+    <string name="empty_logs">Henüz log yok.\n1. Shizuku\'yu başlat.\n2. Kayıt düğmesine bas.</string>
     <string name="shizuku_ok">SHIZUKU</string>
     <string name="shizuku_missing">SHIZUKU YOK</string>
     <string name="shizuku_not_running">Shizuku çalışmıyor.\nÖnce Shizuku\'yu başlat.</string>
@@ -16,9 +16,18 @@
     <string name="action_stop">Kaydı durdur</string>
     <string name="action_filter">Filtre</string>
     <string name="action_search">Ara</string>
-    <string name="action_export">Dışa aktar</string>
     <string name="action_settings">Ayarlar</string>
     <string name="action_back">Geri</string>
+    <string name="action_files">Kayıtlı loglar</string>
+    <string name="action_delete">Sil</string>
+    <string name="action_share">Paylaş</string>
+    <string name="files_title">Kayıtlı loglar</string>
+    <string name="files_search_hint">Tarihe göre ara (örn. 20261117)</string>
+    <string name="files_empty">Henüz dışa aktarılmış log yok.</string>
+    <string name="files_count">%1$d dosya</string>
+    <string name="delete_title">Bu dosya silinsin mi?</string>
+    <string name="delete_text">%1$s kalıcı olarak silinecek.</string>
+    <string name="file_big_notice">Büyük dosya: yalnızca son bölümü gösteriliyor.</string>
     <string name="action_pause">Listeyi duraklat</string>
     <string name="action_resume">Listeye devam et</string>
     <string name="action_clear">Ekranı temizle</string>
@@ -43,7 +52,6 @@
     <string name="copy_entry">Kopyala</string>
     <string name="copied">Kopyalandı</string>
     <string name="select_text">Metin seç</string>
-    <string name="share_title">Yapay zekaya sor</string>
     <string name="close">Kapat</string>
     <string name="prompt_template">Bu Android log kaydını Türkçe açıkla, olası nedenlerini ve yapılması gerekenleri yaz:\n\n%1$s</string>
 
@@ -51,6 +59,8 @@
     <string name="lvl_error">HATA</string>
     <string name="lvl_warn">UYARI</string>
     <string name="lvl_info">BİLGİ</string>
+    <string name="lvl_debug">HATA AYIKLAMA</string>
+    <string name="lvl_verbose">AYRINTILI</string>
     <string name="explain_crash">Uygulama çöktü</string>
     <string name="explain_anr">Uygulama yanıt vermedi (ANR)</string>
     <string name="explain_db">Uygulamanın veritabanı dosyası bozulmuş ya da taşınmış</string>
@@ -60,6 +70,7 @@
 
     <!-- Filter screen -->
     <string name="filter_title">Filtre</string>
+    <string name="filter_clear">Temizle</string>
     <string name="filter_app_search">Uygulama ara</string>
     <string name="filter_show_system">Sistem uygulamalarını göster</string>
     <string name="filter_selected">SEÇİLİ (%1$d)</string>
@@ -73,20 +84,27 @@
     <string name="size_gb">%1$d GB</string>
     <string name="save">Kaydet</string>
     <string name="settings_language">Dil</string>
+    <string name="notif_crash_channel">Çökmeler</string>
+    <string name="notif_crash_title">Çökme kaydedildi</string>
+    <string name="settings_single_line">Log satırlarını tek satırda göster</string>
+    <string name="settings_crash_alert">Çökme bildirimleri</string>
+    <string name="onoff_on">Açık</string>
+    <string name="onoff_off">Kapalı</string>
     <string name="lang_system">Sistem dili</string>
 
     <!-- Export -->
-    <string name="export_title">Logu dışa aktar</string>
-    <string name="export_all">Tüm kayıtlı loglar (ham)</string>
-    <string name="export_filtered">Filtreli loglar</string>
-    <string name="exported">Kaydedildi: %1$s</string>
-    <string name="export_failed">Dışa aktarma başarısız</string>
 
     <!-- Notifications -->
     <string name="notif_channel">Kayıt</string>
-    <string name="notif_title">Logger</string>
+    <string name="notif_title"></string>
     <string name="notif_text">Loglar kaydediliyor</string>
     <string name="notif_stopped">Log kaydı durduruldu</string>
     <string name="notif_action_stop">Durdur</string>
     <string name="notif_action_resume">Devam et</string>
+    <string name="settings_buffers">Görüntülenecek tamponlar</string>
+    <string name="buffers_note">Seçtiğin tamponlar sekme olarak görünür ve kayda eklenir. main, system ve crash her zaman açıktır. radio telefon numaraları içerebilir. Değişiklik sonraki kayıtta geçerli olur.</string>
+    <string name="empty_buffer">Bu tamponda henüz log yok.</string>
+    <string name="action_save">Kaydet</string>
+    <string name="save_done">Kaydedildi: %1$s\n%2$s</string>
+    <string name="save_empty">Kaydedilecek log yok</string>
 </resources>

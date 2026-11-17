@@ -7,12 +7,11 @@ import kotlin.system.exitProcess
 // Runs inside the Shizuku (shell) process, which is allowed to read every app's logs.
 // logcat output is streamed back to the app through a pipe.
 class LogcatUserService : ILogcatService.Stub() {
-    private var process: Process? = null
+    private val processes = mutableListOf<Process>()
 
     override fun start(args: Array<String>): ParcelFileDescriptor {
-        stop()
         val p = ProcessBuilder(*args).redirectErrorStream(true).start()
-        process = p
+        synchronized(processes) { processes.add(p) }
         val pipe = ParcelFileDescriptor.createPipe()
         Thread {
             try {
@@ -26,9 +25,12 @@ class LogcatUserService : ILogcatService.Stub() {
         return pipe[0]
     }
 
+    // Stops every logcat process started through start().
     override fun stop() {
-        process?.destroy()
-        process = null
+        synchronized(processes) {
+            processes.forEach { it.destroy() }
+            processes.clear()
+        }
     }
 
     override fun destroy() {

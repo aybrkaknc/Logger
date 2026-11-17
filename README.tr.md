@@ -44,13 +44,16 @@
 
 ## Proje Hakkında
 
-Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmenizi ve dışa aktarmanızı sağlar. Logları Shizuku üzerinden okur, bu yüzden root gerekmez.
+Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmenizi, kaydetmenizi ve gözden geçirmenizi sağlar. Logları Shizuku üzerinden okur, bu yüzden root gerekmez.
 
 * Kaydı tek düğmeyle ya da bildirimden başlat ve durdur
 * Uygulamaya ve seviyeye (hata, uyarı, bilgi) göre süz; istenirse sistem uygulamalarını da dahil et
 * Log satırı biçimi: `SS:DD:SS - SEVİYE - Uygulama`; çökme ve ANR için kısa açıklamalar
 * Ayarlanabilir en yüksek log boyutu (1-10 GB) ve log yazı boyutu
-* Logları sistem dosya seçicisiyle seçilen klasöre dışa aktar
+* Logları seçtiğiniz çıktı klasörüne kaydet; her kayıt ve tampon için ayrı dosya oluşur
+* Ek tamponları (radio, events, security, stats) seçip her birini sekme olarak görüntüle; ALL açık tüm tamponları birleştirir
+* Kayıt sürerken durdurmadan anlık kayıt al
+* Kayıtlı logları uygulama içinde ara, paylaş veya sil
 * İngilizce ve Türkçe arayüz
 
 0.2.0 sürümü Kotlin ve Jetpack Compose ile baştan yazıldı. Eski uygulama apktool ile çözülmüş bir smali projesiydi.
@@ -99,7 +102,9 @@ Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmen
 2. Logger'ı açıp kayıt düğmesine basın, ardından Shizuku iznini verin.
 3. Filtre ekranından logları uygulamaya veya seviyeye göre daraltın.
 4. Kaydı uygulamadan ya da bildirimden durdurun veya devam ettirin.
-5. Dışa aktar düğmesiyle logu seçtiğiniz klasöre kaydedin.
+5. Ayarlardan ek tamponları seçin ve ana ekrandaki sekmeler arasında geçiş yapın.
+6. Kayıt sürerken kaydet düğmesiyle o ana kadarki logları çıktı klasörüne kopyalayın.
+7. Klasör simgesiyle kayıtlı logları görüntüleyin, arayın, paylaşın veya silin.
 
 <p align="right">(<a href="#readme-top">başa dön</a>)</p>
 

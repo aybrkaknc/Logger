@@ -51,6 +51,22 @@ class Prefs(context: Context) {
         get() = settings.getString(KEY_LANGUAGE, "system") ?: "system"
         set(v) = settings.edit { putString(KEY_LANGUAGE, v) }
 
+    // Long lines shown as one line (ellipsis) instead of wrapping.
+    var singleLine: Boolean
+        get() = settings.getBoolean(KEY_SINGLE_LINE, false)
+        set(v) = settings.edit { putBoolean(KEY_SINGLE_LINE, v) }
+
+    // Notification when a crash (FATAL EXCEPTION) or ANR is logged.
+    var crashAlert: Boolean
+        get() = settings.getBoolean(KEY_CRASH_ALERT, true)
+        set(v) = settings.edit { putBoolean(KEY_CRASH_ALERT, v) }
+
+    // Buffers to read, e.g. "main,system,crash,radio". main/system/crash are always on.
+    var buffers: List<String>
+        get() = (settings.getString(KEY_BUFFERS, DEFAULT_BUFFERS) ?: DEFAULT_BUFFERS)
+            .split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        set(v) = settings.edit { putString(KEY_BUFFERS, v.joinToString(",")) }
+
     var showSystem: Boolean
         get() = filterPrefs.getBoolean(KEY_SYSTEM, false)
         set(v) = filterPrefs.edit { putBoolean(KEY_SYSTEM, v) }
@@ -64,6 +80,12 @@ class Prefs(context: Context) {
         const val KEY_LEVELS = "levels"
         const val KEY_TEXT = "text"
         const val KEY_SYSTEM = "system"
+        const val KEY_BUFFERS = "buffers"
+        const val DEFAULT_BUFFERS = "main,system,crash"
+        val CORE_BUFFERS = listOf("main", "system", "crash")
+        val EXTRA_BUFFERS = listOf("radio", "events", "security", "stats")
+        const val KEY_SINGLE_LINE = "single_line"
+        const val KEY_CRASH_ALERT = "crash_alert"
         const val KEY_LANGUAGE = "language"
         const val KEY_TAGS = "tags"
         const val KEY_PIDS = "pids"

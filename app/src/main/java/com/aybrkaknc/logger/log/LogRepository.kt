@@ -5,6 +5,9 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // One displayed log line plus the stack frames ("at ...") folded under it, in file order.
 data class RawLog(val line: String, val stack: List<String>)
@@ -12,8 +15,37 @@ data class RawLog(val line: String, val stack: List<String>)
 class LogRepository(context: Context) {
     private val dir: File = context.getExternalFilesDir(null) ?: context.filesDir
 
-    val allFile = File(dir, "logcat-all.txt")
-    val filteredFile = File(dir, "filtered-log.txt")
+    // One file per recording, named by start time; the same name in both folders.
+    val rawDir = File(dir, "raw-log").apply { mkdirs() }
+    val filteredDir = File(dir, "filtered-log").apply { mkdirs() }
+
+    fun newSessionBase(): String = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+
+    // The newest session's file for the live screen: the filtered file when that session was
+    // filtered, otherwise its raw file.
+    fun liveFile(buffer: String = "main"): File? {
+        val raw = rawDir.listFiles()?.filter { matchesBuffer(it.name, buffer) }?.maxByOrNull { it.name }
+        val filtered = filteredDir.listFiles()?.filter { matchesBuffer(it.name, buffer) }?.maxByOrNull { it.name }
+        return when {
+            raw == null && filtered == null -> null
+            filtered != null && (raw == null || filtered.name >= raw.name) -> filtered
+            else -> raw
+        }
+    }
+
+    // Live files of the given buffers, only those of the newest session.
+    fun liveFiles(buffers: List<String>): Map<String, File> {
+        val all = buffers.mapNotNull { b -> liveFile(b)?.let { b to it } }
+        val latest = all.maxOfOrNull { it.second.name.take(15) } ?: return emptyMap()
+        return all.filter { it.second.name.startsWith(latest) }.toMap()
+    }
+
+    // Newest first across several buffers, merged by timestamp. The crash buffer repeats lines of main, so equal lines collapse.
+    fun recentLinesAll(files: Map<String, File>, filter: LogFilter, offsets: Map<String, Long>, limit: Int = 200): List<RawLog> =
+        files.flatMap { (b, f) -> recentLines(f, filter, offsets[b] ?: 0L, limit) }
+            .distinctBy { it.line }
+            .sortedByDescending { it.line.take(18) }
+            .take(limit)
 
     // Newest first. Reads only the tail of the file to keep refreshes cheap.
     // minOffset hides everything written before it (used by "clear screen"); it always sits on a line boundary.
@@ -54,7 +86,12 @@ class LogRepository(context: Context) {
         return out
     }
 
+    private fun matchesBuffer(name: String, buffer: String): Boolean =
+        name.endsWith("-$buffer.txt") || (buffer == "main" && name.matches(Regex("""^\d{8}-\d{6}\.txt$""")))
+
     companion object {
+        fun fileName(base: String, buffer: String) = "$base-$buffer.txt"
+
         // Keeps roughly the newest `keep` bytes, starting at a line boundary.
         fun trim(file: File, keep: Long) {
             val tmp = File(file.path + ".tmp")

@@ -28,7 +28,11 @@ object LoggerColors {
     val Fg = Color(0xFF33FF33)
     val Dim = Color(0xFF1F8F1F)
     val Red = Color(0xFFFF4444)
-    val Yellow = Color(0xFFFFD700)
+    val Yellow = Color(0xFFFFB000)
+    val Cyan = Color(0xFF33DDFF)
+    val Gray = Color(0xFF8A8A8A)
+    val AppPurple = Color(0xFFCC88FF)
+    val AppOrange = Color(0xFFFF8844)
     val Selected = Color(0xFF1A5C1A)
     val Panel = Color(0xFF0A0A0A)
     val Field = Color(0xFF141414)
@@ -60,6 +64,23 @@ class PixelCutShape(private val cut: Dp) : Shape {
             lineTo(c, size.height)
             lineTo(0f, size.height - c)
             lineTo(0f, c)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+// Cut bottom corners only; the top stays flat so a tab hangs flush from the line above it.
+class BottomCutShape(private val cut: Dp) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val c = with(density) { cut.toPx() }
+        val path = Path().apply {
+            moveTo(0f, 0f)
+            lineTo(size.width, 0f)
+            lineTo(size.width, size.height - c)
+            lineTo(size.width - c, size.height)
+            lineTo(c, size.height)
+            lineTo(0f, size.height - c)
             close()
         }
         return Outline.Generic(path)

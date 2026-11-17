@@ -89,7 +89,28 @@ fun FilterScreen(onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().background(LoggerColors.Bg)) {
-        ScreenHeader(stringResource(R.string.filter_title), onBack)
+        ScreenHeader(stringResource(R.string.filter_title), onBack) {
+            Text(
+                stringResource(R.string.filter_clear),
+                color = LoggerColors.Fg,
+                fontFamily = JetBrainsMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                modifier = Modifier.clickable {
+                    packages = emptySet()
+                    prefs.packages = packages
+                    levels = LogLine.ALL
+                    prefs.levels = levels
+                    tags = ""
+                    prefs.tags = ""
+                    pids = ""
+                    prefs.pids = ""
+                    showSystem = false
+                    prefs.showSystem = false
+                    query = ""
+                }.padding(horizontal = 8.dp, vertical = 8.dp),
+            )
+        }
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             FilterBox {
                     FilterCaption(stringResource(R.string.filter_group_level))

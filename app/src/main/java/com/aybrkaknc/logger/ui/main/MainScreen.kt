@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -17,6 +18,13 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import java.io.File
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.zIndex
+import com.aybrkaknc.logger.ui.theme.BottomCutShape
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -76,7 +84,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.aybrkaknc.logger.R
-import com.aybrkaknc.logger.export.ExportManager
 import com.aybrkaknc.logger.log.LogDescriber
 import com.aybrkaknc.logger.log.LogEntry
 import com.aybrkaknc.logger.log.LogFilter
@@ -88,6 +95,7 @@ import com.aybrkaknc.logger.ui.IconBtn
 import com.aybrkaknc.logger.ui.LoggerField
 import com.aybrkaknc.logger.ui.theme.JetBrainsMono
 import com.aybrkaknc.logger.ui.theme.LoggerColors
+import com.aybrkaknc.logger.ui.theme.PixelCutShape
 import com.aybrkaknc.logger.ui.theme.TitleStyle
 import com.aybrkaknc.logger.ui.theme.centerCaps
 import kotlinx.coroutines.Dispatchers
@@ -97,12 +105,16 @@ import kotlinx.coroutines.withContext
 
 private class Keyed(val key: String, val entry: LogEntry)
 
+// File name and size of a buffer the last time its tab was open.
+private data class Mark(val name: String, val length: Long)
+
 @Composable
 fun MainScreen(
     shizuku: ShizukuStatus,
     onToggle: () -> Unit,
     onOpenFilter: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenFiles: () -> Unit,
 ) {
     val context = LocalContext.current
     val prefs = remember { Prefs(context) }
@@ -113,12 +125,18 @@ fun MainScreen(
     var rows by remember { mutableStateOf<List<Keyed>>(emptyList()) }
     var filterActive by remember { mutableStateOf(false) }
     var fontSp by remember { mutableIntStateOf(prefs.fontSp) }
+    val singleLine = remember { prefs.singleLine }
     var searchOpen by rememberSaveable { mutableStateOf(prefs.text.isNotEmpty()) }
     var searchText by rememberSaveable { mutableStateOf(prefs.text) }
-    var exportDialog by remember { mutableStateOf(false) }
     var paused by rememberSaveable { mutableStateOf(false) }
+    var buffer by rememberSaveable { mutableStateOf("all") }
+    // Clear offsets by file name for the ALL tab (clearedAt only restarts the refresh there).
+    var clearedAll by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
+    var tabs by remember { mutableStateOf(Prefs.CORE_BUFFERS) }
     // Byte offset in the filtered log at the last "clear screen"; lines before it are not shown.
     var clearedAt by rememberSaveable { mutableLongStateOf(0L) }
+    val marks = remember { mutableMapOf<String, Mark>() }
+    var unread by remember { mutableStateOf(emptySet<String>()) }
     var currentMatch by remember { mutableStateOf<String?>(null) }
     // Keys of rows picked in selection mode; non-empty means selection mode is on.
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -131,7 +149,7 @@ fun MainScreen(
     // Reload the tail of the filtered log once per second while visible. Restarts (and reloads at once) on search,
     // pause or clear changes. While paused only that first reload runs, so the list stays still.
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(lifecycle, searchText, paused, clearedAt) {
+    LaunchedEffect(lifecycle, searchText, paused, clearedAt, buffer) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             var lastKey: String? = null
             var lastLength = -1L
@@ -139,23 +157,60 @@ fun MainScreen(
             while (true) {
                 if (!paused || first) {
                     fontSp = prefs.fontSp
-                    val file = repo.filteredFile
-                    // The service trims the file when it grows too large, which invalidates the offset.
-                    if (clearedAt > 0 && withContext(Dispatchers.IO) { file.length() } < clearedAt) {
+                    tabs = (Prefs.CORE_BUFFERS + prefs.buffers).distinct()
+                    if (buffer != "all" && buffer !in tabs) {
+                        buffer = "all"
+                        return@repeatOnLifecycle
+                    }
+                    // Unread dots: a tab that is not open lights up once its file grows past the mark from when it was last open.
+                    val watch = withContext(Dispatchers.IO) {
+                        val filter = LogFilter.from(context, prefs)
+                        tabs.associateWith { b ->
+                            val f = repo.liveFile(b)
+                            if (f == null) {
+                                Mark("", 0L)
+                            } else {
+                                val len = if (filter.isActive) File(repo.filteredDir, f.name).let { if (it.exists()) it.length() else 0L } else f.length()
+                                Mark(f.name, len)
+                            }
+                        }
+                    }
+                    val open = if (buffer == "all") tabs else listOf(buffer)
+                    val now = mutableSetOf<String>()
+                    for ((b, m) in watch) {
+                        val old = marks[b]
+                        if (b in open || old == null) {
+                            marks[b] = m
+                        } else if (if (old.name == m.name) m.length > old.length else m.length > 0) {
+                            now.add(b)
+                        }
+                    }
+                    unread = if (now.isEmpty()) emptySet() else now + "all"
+                    // The newest session's file: a new recording switches files, and the service trims the
+                    // file when it grows too large; both invalidate the clear-screen offset.
+                    val currentLength = withContext(Dispatchers.IO) { repo.liveFile(buffer)?.length() }
+                    if (buffer != "all" && clearedAt > 0 && (currentLength == null || currentLength < clearedAt)) {
                         clearedAt = 0L
                         return@repeatOnLifecycle
                     }
                     val result = withContext(Dispatchers.IO) {
                         val filter = LogFilter.from(context, prefs)
-                        val length = file.length()
-                        if (filter.key == lastKey && length == lastLength) {
-                            Triple(filter, length, null)
+                        val files = if (buffer == "all") repo.liveFiles(tabs) else repo.liveFile(buffer)?.let { mapOf(buffer to it) }.orEmpty()
+                        val length = files.values.sumOf { it.length() }
+                        val key = filter.key + "|" + files.values.joinToString { it.parentFile?.name + "/" + it.name }
+                        if (key == lastKey && length == lastLength) {
+                            Triple(key, length, null)
                         } else {
-                            Triple(filter, length, withKeys(repo.recentLines(file, filter, clearedAt).map { describer.describe(it) }))
+                            val list = if (buffer == "all") {
+                                repo.recentLinesAll(files, filter, files.mapNotNull { (b, f) -> clearedAll[f.name]?.let { b to it } }.toMap())
+                            } else {
+                                files.values.firstOrNull()?.let { repo.recentLines(it, filter, clearedAt) }.orEmpty()
+                            }
+                            Triple(key, length, withKeys(list.map { describer.describe(it) }))
                         }
                     }
-                    filterActive = result.first.isActive
-                    lastKey = result.first.key
+                    filterActive = LogFilter.from(context, prefs).isActive
+                    lastKey = result.first
                     lastLength = result.second
                     result.third?.let { new ->
                         val atTop = listState.firstVisibleItemIndex == 0
@@ -221,11 +276,19 @@ fun MainScreen(
                         }
                         searchOpen = !searchOpen
                     },
-                    onExport = { exportDialog = true },
+                    onFiles = onOpenFiles,
                     onSettings = onOpenSettings,
                 )
             }
-            Box(Modifier.fillMaxWidth().height(2.dp).background(LoggerColors.Fg))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(LoggerColors.Fg))
+            run {
+                BufferTabs(listOf("all") + tabs, buffer, unread) {
+                    buffer = it
+                    clearedAt = 0L
+                    rows = emptyList()
+                    currentMatch = null
+                }
+            }
             AnimatedVisibility(searchOpen, enter = expandVertically(tween(220)), exit = shrinkVertically(tween(220))) {
                 SearchField(
                     text = searchText,
@@ -239,18 +302,34 @@ fun MainScreen(
                     currentMatch = null
                 }
             }
+            // The log body, below the header divider.
+            Box(
+                Modifier.weight(1f).fillMaxWidth().navigationBarsPadding()
+                    .padding(top = 4.dp, bottom = 16.dp),
+            ) {
             if (rows.isEmpty()) {
-                EmptyState(shizuku)
+                if (buffer == "all" || buffer == "main") {
+                    EmptyState(shizuku)
+                } else {
+                    Text(
+                        stringResource(R.string.empty_buffer),
+                        color = LoggerColors.Dim,
+                        fontFamily = JetBrainsMono,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(20.dp),
+                    )
+                }
             } else {
                 LazyColumn(
                     state = listState,
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 120.dp),
+                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 120.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(rows, key = { it.key }) { row ->
                         LogRow(
                             entry = row.entry,
                             fontSp = fontSp,
+                            singleLine = singleLine,
                             query = query,
                             current = row.key == currentMatch,
                             modifier = Modifier.animateItem(),
@@ -263,6 +342,7 @@ fun MainScreen(
                         )
                     }
                 }
+            }
             }
         }
         Row(
@@ -280,7 +360,12 @@ fun MainScreen(
                     Text(stringResource(R.string.paused), color = LoggerColors.Yellow, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
                 SmallButton(R.drawable.ic_clear, R.string.action_clear) {
-                    clearedAt = repo.filteredFile.length()
+                    if (buffer == "all") {
+                        clearedAll = repo.liveFiles(tabs).values.associate { it.name to it.length() }
+                        clearedAt += 1
+                    } else {
+                        clearedAt = repo.liveFile(buffer)?.length() ?: 0L
+                    }
                     rows = emptyList()
                     currentMatch = null
                 }
@@ -289,6 +374,7 @@ fun MainScreen(
                     if (paused) R.string.action_resume else R.string.action_pause,
                     active = paused,
                 ) { paused = !paused }
+                if (running) SmallButton(R.drawable.ic_save, R.string.action_save) { LogService.save(context) }
             }
             // "Back to top" and the record button share one vertical axis.
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -302,21 +388,6 @@ fun MainScreen(
         }
     }
 
-    if (exportDialog) {
-        ExportDialog(
-            onDismiss = { exportDialog = false },
-            onPick = { all ->
-                exportDialog = false
-                scope.launch {
-                    val file = if (all) repo.allFile else repo.filteredFile
-                    val prefix = if (all) ExportManager.PREFIX_ALL else ExportManager.PREFIX_FILTERED
-                    val shown = withContext(Dispatchers.IO) { ExportManager.export(context, file, prefix) }
-                    val msg = if (shown != null) context.getString(R.string.exported, shown) else context.getString(R.string.export_failed)
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                }
-            },
-        )
-    }
 }
 
 // Identical log lines can repeat; number occurrences from the oldest so keys stay stable as new lines arrive on top.
@@ -335,7 +406,7 @@ private fun withKeys(entries: List<LogEntry>): List<Keyed> {
 private fun Header(shizuku: ShizukuStatus) {
     val context = LocalContext.current
     Row(
-        Modifier.fillMaxWidth().background(LoggerColors.Panel).statusBarsPadding()
+        Modifier.fillMaxWidth().statusBarsPadding()
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -344,10 +415,11 @@ private fun Header(shizuku: ShizukuStatus) {
         // Title opens the project's GitHub repository.
         PressPill(onClick = { openUrl(context, GITHUB_URL) }) { pressed ->
             Text(
-                stringResource(R.string.title_main),
-                style = TitleStyle,
+                LOGO_LINES.joinToString("\n"),
+                fontFamily = JetBrainsMono,
+                fontSize = 5.sp,
+                lineHeight = 5.sp,
                 color = if (pressed) LoggerColors.Bg else LoggerColors.Fg,
-                modifier = Modifier.centerCaps(),
             )
         }
         Spacer(Modifier.weight(1f))
@@ -394,6 +466,19 @@ private fun openUrl(context: Context, url: String) {
 
 private const val GITHUB_URL = "https://github.com/aybrkaknc/Logger"
 
+// Header logo: LOGGER in the ASCII block style.
+private val LOGO_LINES = listOf(
+    """$$\       $$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\  """,
+    """$$ |     $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ """,
+    """$$ |     $$ /  $$ |$$ /  \__|$$ /  \__|$$ |      $$ |  $$ |""",
+    """$$ |     $$ |  $$ |$$ |$$$$\ $$ |$$$$\ $$$$$\    $$$$$$$  |""",
+    """$$ |     $$ |  $$ |$$ |\_$$ |$$ |\_$$ |$$  __|   $$  __$$< """,
+    """$$ |     $$ |  $$ |$$ |  $$ |$$ |  $$ |$$ |      $$ |  $$ |""",
+    """$$$$$$$$\ $$$$$$  |\$$$$$$  |\$$$$$$  |$$$$$$$$\ $$ |  $$ |""",
+    """\________|\______/  \______/  \______/ \________|\__|  \__|""",
+)
+
+
 private fun openShizuku(context: Context) {
     context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE)?.let { context.startActivity(it) }
 }
@@ -401,9 +486,9 @@ private fun openShizuku(context: Context) {
 private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
 
 @Composable
-private fun FilterBar(active: Boolean, onOpenFilter: () -> Unit, onSearch: () -> Unit, onExport: () -> Unit, onSettings: () -> Unit) {
+private fun FilterBar(active: Boolean, onOpenFilter: () -> Unit, onSearch: () -> Unit, onFiles: () -> Unit, onSettings: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().background(LoggerColors.Panel).padding(horizontal = 12.dp, vertical = 2.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Filter icon and status text form one pill that flashes together while held.
@@ -435,7 +520,7 @@ private fun FilterBar(active: Boolean, onOpenFilter: () -> Unit, onSearch: () ->
         // Spacer keeps the three action icons pinned to the right edge while the pill hugs its text.
         Spacer(Modifier.weight(1f))
         IconBtn(R.drawable.ic_search, R.string.action_search, onSearch)
-        IconBtn(R.drawable.ic_export, R.string.action_export, onExport)
+        IconBtn(R.drawable.ic_folder, R.string.action_files, onFiles)
         IconBtn(R.drawable.ic_settings, R.string.action_settings, onSettings)
     }
 }
@@ -536,7 +621,7 @@ private fun EmptyState(shizuku: ShizukuStatus) {
 }
 
 // Record button size; the small buttons are 32dp, so this keeps the same ratio (~0.73).
-private val RecordSize = 46.dp
+private val RecordSize = 58.dp
 
 // Green background and black icon while active (e.g. paused) or while pressed.
 @Composable
@@ -550,13 +635,13 @@ private fun SmallButton(icon: Int, desc: Int, active: Boolean = false, onClick: 
         color = if (on) LoggerColors.Fg else LoggerColors.Panel,
         border = BorderStroke(1.dp, if (on) LoggerColors.Fg else LoggerColors.Dim),
         interactionSource = interaction,
-        modifier = Modifier.size(32.dp),
+        modifier = Modifier.size(40.dp),
     ) {
         Icon(
             painterResource(icon),
             stringResource(desc),
             tint = if (on) LoggerColors.Bg else LoggerColors.Fg,
-            modifier = Modifier.padding(6.dp),
+            modifier = Modifier.padding(8.dp),
         )
     }
 }
@@ -578,31 +663,42 @@ private fun ToggleButton(running: Boolean, onClick: () -> Unit, modifier: Modifi
             painterResource(if (running) R.drawable.ic_stop else R.drawable.ic_play),
             stringResource(if (running) R.string.action_stop else R.string.action_start),
             tint = LoggerColors.Panel,
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(15.dp),
         )
     }
 }
 
+
 @Composable
-private fun ExportDialog(onDismiss: () -> Unit, onPick: (all: Boolean) -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = LoggerColors.Panel,
-        title = { Text(stringResource(R.string.export_title), color = LoggerColors.Fg, fontFamily = JetBrainsMono) },
-        text = {
-            Column {
-                for ((all, label) in listOf(true to R.string.export_all, false to R.string.export_filtered)) {
-                    Text(
-                        stringResource(label),
-                        color = LoggerColors.Fg,
-                        fontFamily = JetBrainsMono,
-                        modifier = Modifier.fillMaxWidth().clickable { onPick(all) }.padding(vertical = 12.dp),
-                    )
+private fun BufferTabs(buffers: List<String>, selected: String, unread: Set<String>, onSelect: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        for (b in buffers) {
+            val on = b == selected
+            Box(
+                Modifier.weight(1f)
+                    .clip(BottomCutShape(4.dp))
+                    .background(if (on) LoggerColors.Fg else LoggerColors.Bg)
+                    .border(1.dp, if (on) LoggerColors.Fg else LoggerColors.Dim, BottomCutShape(4.dp))
+                    .clickable { onSelect(b) }
+                    .padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (b == "all") "ALL" else when (b) { "main" -> "APP"; else -> b.uppercase() },
+                    color = if (on) LoggerColors.Bg else LoggerColors.Dim,
+                    fontFamily = JetBrainsMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 9.sp,
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                )
+                if (b in unread) {
+                    Box(Modifier.align(Alignment.BottomEnd).padding(end = 2.dp, bottom = 2.dp).size(4.dp).background(LoggerColors.Fg, CircleShape))
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close), color = LoggerColors.Dim) }
-        },
-    )
+        }
+    }
 }
