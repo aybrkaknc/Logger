@@ -51,7 +51,7 @@ Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmen
 * Log satırı biçimi: `SS:DD:SS - SEVİYE - Uygulama`; çökme ve ANR için kısa açıklamalar
 * Ayarlanabilir en yüksek log boyutu (1-10 GB) ve log yazı boyutu
 * Logları seçtiğiniz çıktı klasörüne kaydet; her kayıt ve tampon için ayrı dosya oluşur
-* Ek tamponları (radio, events, security, stats) seçip her birini sekme olarak görüntüle; ALL açık tüm tamponları birleştirir
+* Ek tamponları (radio, events, security, stats, kernel) seçip her birini sekme olarak görüntüle; ALL açık tüm tamponları birleştirir
 * Kayıt sürerken durdurmadan anlık kayıt al
 * Kayıtlı logları uygulama içinde ara, paylaş veya sil
 * İngilizce ve Türkçe arayüz

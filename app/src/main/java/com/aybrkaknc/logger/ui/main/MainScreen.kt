@@ -18,11 +18,10 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
 import java.io.File
-import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.zIndex
-import com.aybrkaknc.logger.ui.theme.BottomCutShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -671,32 +670,46 @@ private fun ToggleButton(running: Boolean, onClick: () -> Unit, modifier: Modifi
 
 @Composable
 private fun BufferTabs(buffers: List<String>, selected: String, unread: Set<String>, onSelect: (String) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        for (b in buffers) {
-            val on = b == selected
-            Box(
-                Modifier.weight(1f)
-                    .clip(BottomCutShape(4.dp))
-                    .background(if (on) LoggerColors.Fg else LoggerColors.Bg)
-                    .border(1.dp, if (on) LoggerColors.Fg else LoggerColors.Dim, BottomCutShape(4.dp))
-                    .clickable { onSelect(b) }
-                    .padding(vertical = 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    if (b == "all") "ALL" else when (b) { "main" -> "APP"; else -> b.uppercase() },
-                    color = if (on) LoggerColors.Bg else LoggerColors.Dim,
-                    fontFamily = JetBrainsMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 9.sp,
-                    maxLines = 1,
-                    textAlign = TextAlign.Center,
-                )
-                if (b in unread) {
-                    Box(Modifier.align(Alignment.BottomEnd).padding(end = 2.dp, bottom = 2.dp).size(4.dp).background(LoggerColors.Fg, CircleShape))
+    // One row while every tab fits at a readable width; otherwise two rows of about equal size.
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp)) {
+        val needed = buffers.size * 64f + (buffers.size - 1) * 2f
+        val rows = if (needed <= maxWidth.value) listOf(buffers) else buffers.chunked((buffers.size + 1) / 2)
+        // A 2dp gap between the rows; the first row sits right under the header divider.
+        Column {
+            for ((index, row) in rows.withIndex()) {
+                Row(
+                    Modifier.padding(top = if (index == 0) 0.dp else 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    for (b in row) {
+                        val on = b == selected
+                        Box(
+                            Modifier.weight(1f)
+                                .clip(PixelCutShape(4.dp))
+                                .background(if (on) LoggerColors.Fg else LoggerColors.Bg)
+                                .border(1.dp, if (on) LoggerColors.Fg else LoggerColors.Dim, PixelCutShape(4.dp))
+                                .clickable { onSelect(b) }
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                if (b == "all") "ALL" else when (b) { "main" -> "APP"; else -> b.uppercase() },
+                                color = if (on) LoggerColors.Bg else LoggerColors.Dim,
+                                fontFamily = JetBrainsMono,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp,
+                                maxLines = 1,
+                                textAlign = TextAlign.Center,
+                            )
+                            // Tucked into the cut corner, inside the tab's outline.
+                            if (b in unread) {
+                                Box(
+                                    Modifier.align(Alignment.BottomEnd).padding(end = 2.dp, bottom = 2.dp).size(4.dp)
+                                        .background(LoggerColors.Fg, CircleShape),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

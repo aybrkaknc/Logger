@@ -70,23 +70,6 @@ class PixelCutShape(private val cut: Dp) : Shape {
     }
 }
 
-// Cut bottom corners only; the top stays flat so a tab hangs flush from the line above it.
-class BottomCutShape(private val cut: Dp) : Shape {
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-        val c = with(density) { cut.toPx() }
-        val path = Path().apply {
-            moveTo(0f, 0f)
-            lineTo(size.width, 0f)
-            lineTo(size.width, size.height - c)
-            lineTo(size.width - c, size.height)
-            lineTo(c, size.height)
-            lineTo(0f, size.height - c)
-            close()
-        }
-        return Outline.Generic(path)
-    }
-}
-
 // Pixel Operator Mono: capitals span 0..700 above the baseline, the line box spans -100..700 (800 units).
 // The letters therefore sit 50/800 em above the box center; push the text down to center them.
 fun Modifier.centerCaps(): Modifier =

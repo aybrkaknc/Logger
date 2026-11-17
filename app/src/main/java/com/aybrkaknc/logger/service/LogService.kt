@@ -205,7 +205,7 @@ class LogService : Service() {
 
         // -T 1: follow only new lines instead of replaying the whole buffer on every start.
         private fun argsFor(buffer: String) =
-            arrayOf("logcat", "-v", "threadtime", "-v", "uid", "-T", "1", "-b", buffer, "libc:E", "*:V")
+            arrayOf("logcat", "-v", "threadtime", "-v", "uid", "-T", "1", "-b", buffer, "*:V")
 
         private val _running = MutableStateFlow(false)
         val running: StateFlow<Boolean> = _running

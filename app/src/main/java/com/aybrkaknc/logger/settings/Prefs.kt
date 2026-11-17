@@ -83,7 +83,7 @@ class Prefs(context: Context) {
         const val KEY_BUFFERS = "buffers"
         const val DEFAULT_BUFFERS = "main,system,crash"
         val CORE_BUFFERS = listOf("main", "system", "crash")
-        val EXTRA_BUFFERS = listOf("radio", "events", "security", "stats")
+        val EXTRA_BUFFERS = listOf("radio", "events", "security", "stats", "kernel")
         const val KEY_SINGLE_LINE = "single_line"
         const val KEY_CRASH_ALERT = "crash_alert"
         const val KEY_LANGUAGE = "language"
