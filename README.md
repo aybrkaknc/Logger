@@ -111,7 +111,8 @@ For a signed release build, copy `keystore.properties.example` to `keystore.prop
 - [x] Recording service with Shizuku and notifications
 - [x] Main, filter and settings screens
 - [x] Export
-- [ ] On-device testing and polish
+- [x] On-device testing and polish
+- [x] Signed release build (0.1.0)
 
 See the [open issues](https://github.com/aybrkaknc/Logger/issues) for more.
 
@@ -129,9 +130,10 @@ See the [open issues](https://github.com/aybrkaknc/Logger/issues) for more.
 
 ## License
 
-No license has been specified yet for the app code.
+Distributed under the GNU General Public License v3.0. See `LICENSE` for more information.
 
-Bundled fonts:
+Third-party components keep their own licenses:
+* [Shizuku API](https://github.com/RikkaApps/Shizuku-API), Apache License 2.0
 * JetBrains Mono, SIL Open Font License 1.1 (`app/src/main/assets/licenses/JetBrainsMono-OFL.txt`)
 * Pixel Operator Mono
 

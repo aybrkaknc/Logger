@@ -111,7 +111,8 @@ Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmen
 - [x] Shizuku ve bildirimlerle kayıt servisi
 - [x] Ana ekran, filtre ve ayarlar ekranları
 - [x] Dışa aktarma
-- [ ] Cihaz üzerinde test ve cila
+- [x] Cihaz üzerinde test ve cila
+- [x] İmzalı release derlemesi (0.1.0)
 
 Daha fazlası için [açık sorunlara](https://github.com/aybrkaknc/Logger/issues) bakın.
 
@@ -129,9 +130,10 @@ Daha fazlası için [açık sorunlara](https://github.com/aybrkaknc/Logger/issue
 
 ## Lisans
 
-Uygulama kodu için henüz bir lisans belirtilmedi.
+GNU Genel Kamu Lisansı v3.0 (GPL-3.0) ile dağıtılır. Ayrıntılar için `LICENSE` dosyasına bakın.
 
-Pakete dahil fontlar:
+Üçüncü taraf bileşenler kendi lisanslarını korur:
+* [Shizuku API](https://github.com/RikkaApps/Shizuku-API), Apache Lisansı 2.0
 * JetBrains Mono, SIL Open Font License 1.1 (`app/src/main/assets/licenses/JetBrainsMono-OFL.txt`)
 * Pixel Operator Mono
 
