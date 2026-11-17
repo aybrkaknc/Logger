@@ -36,7 +36,6 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -101,20 +100,6 @@ For a signed release build, copy `keystore.properties.example` to `keystore.prop
 3. Use the filter screen to narrow logs by app or level.
 4. Stop or resume recording from the app or the notification.
 5. Use the export button to save the log to a folder you pick.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-## Roadmap
-
-- [x] Project setup (Kotlin, Compose, Gradle)
-- [x] Log parsing and filtering
-- [x] Recording service with Shizuku and notifications
-- [x] Main, filter and settings screens
-- [x] Export
-- [x] On-device testing and polish
-- [x] Signed release build (0.1.0)
-
-See the [open issues](https://github.com/aybrkaknc/Logger/issues) for more.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

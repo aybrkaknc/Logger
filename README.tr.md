@@ -36,7 +36,6 @@
       </ul>
     </li>
     <li><a href="#kullanım">Kullanım</a></li>
-    <li><a href="#yol-haritası">Yol Haritası</a></li>
     <li><a href="#katkıda-bulunma">Katkıda Bulunma</a></li>
     <li><a href="#lisans">Lisans</a></li>
     <li><a href="#iletişim">İletişim</a></li>
@@ -101,20 +100,6 @@ Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmen
 3. Filtre ekranından logları uygulamaya veya seviyeye göre daraltın.
 4. Kaydı uygulamadan ya da bildirimden durdurun veya devam ettirin.
 5. Dışa aktar düğmesiyle logu seçtiğiniz klasöre kaydedin.
-
-<p align="right">(<a href="#readme-top">başa dön</a>)</p>
-
-## Yol Haritası
-
-- [x] Proje kurulumu (Kotlin, Compose, Gradle)
-- [x] Log ayrıştırma ve filtreleme
-- [x] Shizuku ve bildirimlerle kayıt servisi
-- [x] Ana ekran, filtre ve ayarlar ekranları
-- [x] Dışa aktarma
-- [x] Cihaz üzerinde test ve cila
-- [x] İmzalı release derlemesi (0.1.0)
-
-Daha fazlası için [açık sorunlara](https://github.com/aybrkaknc/Logger/issues) bakın.
 
 <p align="right">(<a href="#readme-top">başa dön</a>)</p>
 
