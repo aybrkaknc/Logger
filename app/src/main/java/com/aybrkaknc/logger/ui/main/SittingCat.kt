@@ -1,68 +1,66 @@
 package com.aybrkaknc.logger.ui.main
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aybrkaknc.logger.ui.theme.LoggerColors
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
-// Pixel cat on a 26x26 grid: sits facing the viewer, only the tail layer moves.
-private const val GRID = 26f
+private class Run(val col: Int, val row: Int, val len: Int, val color: Color)
 
-private val tail = listOf(
-    floatArrayOf(20f, 10f, 3f, 3f), floatArrayOf(22f, 13f, 3f, 3f),
-    floatArrayOf(22f, 16f, 3f, 3f), floatArrayOf(20f, 19f, 3f, 3f),
-)
-private val body = listOf(
-    floatArrayOf(6f, 2f, 3f, 3f), floatArrayOf(15f, 2f, 3f, 3f), // ears
-    floatArrayOf(6f, 5f, 12f, 9f), // head
-    floatArrayOf(5f, 14f, 14f, 9f), // body
-    floatArrayOf(7f, 22f, 3f, 2f), floatArrayOf(14f, 22f, 3f, 2f), // paws
-)
-private val face = listOf(
-    floatArrayOf(8f, 8f, 2f, 2f), floatArrayOf(14f, 8f, 2f, 2f), // eyes
-    floatArrayOf(11f, 11f, 2f, 1f), // mouth
-)
+// Every filled cell uses one color: a solid silhouette.
+private fun colorOf(ch: Char): Color? = if (ch == '.') null else LoggerColors.Fg
 
-private fun DrawScope.pixels(rects: List<FloatArray>, color: Color) {
-    val s = size.width / GRID
-    for (r in rects) drawRect(color, Offset(r[0] * s, r[1] * s), Size(r[2] * s, r[3] * s))
+// Horizontal runs of one color per frame: far fewer draw calls than one rect per cell.
+private val RUNS: List<List<Run>> = CatFrames.FRAMES.map { frame ->
+    buildList {
+        frame.forEachIndexed { row, line ->
+            var col = 0
+            while (col < line.length) {
+                val ch = line[col]
+                var end = col
+                while (end + 1 < line.length && line[end + 1] == ch) end++
+                colorOf(ch)?.let { add(Run(col, row, end - col + 1, it)) }
+                col = end + 1
+            }
+        }
+    }
 }
 
+// The box is an exact multiple of the cell size, so the drawn cat fills it with no hidden margin.
 @Composable
-fun SittingCat(modifier: Modifier = Modifier.size(36.dp)) {
-    val transition = rememberInfiniteTransition(label = "tail")
-    val angle = transition.animateFloat(
-        initialValue = -18f,
-        targetValue = 18f,
-        animationSpec = infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "angle",
-    )
-    Box(modifier) {
-        // Reading the angle inside graphicsLayer only re-draws this layer, no recomposition.
-        Canvas(
-            Modifier.matchParentSize().graphicsLayer {
-                rotationZ = angle.value
-                transformOrigin = TransformOrigin(20f / GRID, 22f / GRID)
-            },
-        ) { pixels(tail, LoggerColors.Fg) }
-        Canvas(Modifier.matchParentSize()) {
-            pixels(body, LoggerColors.Fg)
-            pixels(face, LoggerColors.Bg)
+fun SittingCat(height: Dp = 40.dp, modifier: Modifier = Modifier) {
+    var step by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(CatFrames.DELAYS_MS[step])
+            step = (step + 1) % CatFrames.SEQUENCE.size
+        }
+    }
+
+    val density = LocalDensity.current
+    val cell = with(density) { (height.toPx() / CatFrames.ROWS).roundToInt().coerceAtLeast(1) }
+    val boxWidth = with(density) { (cell * CatFrames.COLS).toDp() }
+    val boxHeight = with(density) { (cell * CatFrames.ROWS).toDp() }
+
+    Canvas(modifier.size(boxWidth, boxHeight)) {
+        // `step` is read here, so only the draw phase reruns.
+        val px = cell.toFloat()
+        for (run in RUNS[CatFrames.SEQUENCE[step]]) {
+            drawRect(run.color, Offset(run.col * px, run.row * px), Size(px * run.len, px))
         }
     }
 }

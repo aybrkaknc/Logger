@@ -7,19 +7,27 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onSizeChanged
+import kotlin.math.roundToInt
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,11 +35,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -44,13 +58,17 @@ import com.aybrkaknc.logger.R
 import com.aybrkaknc.logger.log.LogEntry
 import com.aybrkaknc.logger.ui.theme.JetBrainsMono
 import com.aybrkaknc.logger.ui.theme.LoggerColors
+import com.aybrkaknc.logger.ui.theme.PixelCutShape
 import kotlinx.coroutines.delay
 
 @Composable
 fun LogRow(entry: LogEntry, fontSp: Int, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val density = LocalDensity.current
     var pressed by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
+    var pressAt by remember { mutableStateOf(Offset.Zero) }
+    var rowWidth by remember { mutableIntStateOf(0) }
     var selectDialog by remember { mutableStateOf(false) }
     val sel by animateFloatAsState(if (pressed || menu) 1f else 0f, tween(220), label = "sel")
 
@@ -60,7 +78,7 @@ fun LogRow(entry: LogEntry, fontSp: Int, modifier: Modifier = Modifier) {
     }
     val explain = entry.explain?.let { stringResource(it) }
 
-    Box(modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+    Box(modifier.fillMaxWidth().padding(bottom = 12.dp).onSizeChanged { rowWidth = it.width }) {
         Text(
             text = describe(header, explain, entry, sel, fontSp),
             fontFamily = JetBrainsMono,
@@ -75,21 +93,36 @@ fun LogRow(entry: LogEntry, fontSp: Int, modifier: Modifier = Modifier) {
                             delay(150)
                             pressed = false
                         },
-                        onLongPress = { menu = true },
+                        onLongPress = { pressAt = it; menu = true },
                     )
                 }
                 .padding(horizontal = 4.dp, vertical = 2.dp),
         )
-        DropdownMenu(
-            expanded = menu,
-            onDismissRequest = { menu = false },
-            shape = RoundedCornerShape(8.dp),
-            containerColor = LoggerColors.Panel,
-            border = BorderStroke(1.dp, LoggerColors.Fg),
-        ) {
-            MenuItem(R.string.copy_entry) { menu = false; copy(context, entry.raw) }
-            MenuItem(R.string.select_text) { menu = false; selectDialog = true }
-            MenuItem(R.string.share_title) { menu = false; share(context, entry.raw) }
+        if (menu) {
+            // Own popup instead of DropdownMenu: its built-in vertical padding left black bars above and below the items.
+            // Opens at the long-press point, kept inside the row horizontally.
+            val menuWidth = with(density) { 200.dp.roundToPx() }
+            val x = pressAt.x.roundToInt().coerceIn(0, maxOf(0, rowWidth - menuWidth))
+            Popup(
+                alignment = Alignment.TopStart,
+                offset = IntOffset(x, pressAt.y.roundToInt()),
+                onDismissRequest = { menu = false },
+                properties = PopupProperties(focusable = true),
+            ) {
+                val shape = PixelCutShape(4.dp)
+                Column(
+                    Modifier.width(200.dp)
+                        .clip(shape)
+                        .background(LoggerColors.Panel, shape)
+                        .border(1.dp, LoggerColors.Dim, shape),
+                ) {
+                    MenuItem(R.string.copy_entry) { menu = false; copy(context, entry.raw) }
+                    MenuItemDivider()
+                    MenuItem(R.string.select_text) { menu = false; selectDialog = true }
+                    MenuItemDivider()
+                    MenuItem(R.string.share_title) { menu = false; share(context, entry.raw) }
+                }
+            }
         }
     }
 
@@ -110,12 +143,29 @@ fun LogRow(entry: LogEntry, fontSp: Int, modifier: Modifier = Modifier) {
     }
 }
 
+// Pressed item inverts: solid green bar with black text, no ripple.
 @Composable
 private fun MenuItem(label: Int, onClick: () -> Unit) {
-    DropdownMenuItem(
-        text = { Text(stringResource(label), color = LoggerColors.Fg, fontFamily = JetBrainsMono, fontSize = 13.sp) },
-        onClick = onClick,
-    )
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    Box(
+        Modifier.fillMaxWidth()
+            .background(if (pressed) LoggerColors.Fg else LoggerColors.Panel)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+    ) {
+        Text(
+            stringResource(label),
+            color = if (pressed) LoggerColors.Bg else LoggerColors.Fg,
+            fontFamily = JetBrainsMono,
+            fontSize = 13.sp,
+        )
+    }
+}
+
+@Composable
+private fun MenuItemDivider() {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(LoggerColors.Dim))
 }
 
 private fun describe(header: String, explain: String?, entry: LogEntry, sel: Float, fontSp: Int): AnnotatedString {

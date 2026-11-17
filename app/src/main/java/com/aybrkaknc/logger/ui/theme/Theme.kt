@@ -1,16 +1,27 @@
 package com.aybrkaknc.logger.ui.theme
 
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import com.aybrkaknc.logger.R
+import kotlin.math.roundToInt
 
 object LoggerColors {
     val Bg = Color(0xFF000000)
@@ -35,6 +46,30 @@ val JetBrainsMono = FontFamily(
 )
 
 val TitleStyle = TextStyle(fontFamily = PixelTitle, fontSize = 24.sp, color = LoggerColors.Fg)
+
+// Rectangle with square-cut corners: a pixel-art frame instead of a rounded card.
+class PixelCutShape(private val cut: Dp) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val c = with(density) { cut.toPx() }
+        val path = Path().apply {
+            moveTo(c, 0f)
+            lineTo(size.width - c, 0f)
+            lineTo(size.width, c)
+            lineTo(size.width, size.height - c)
+            lineTo(size.width - c, size.height)
+            lineTo(c, size.height)
+            lineTo(0f, size.height - c)
+            lineTo(0f, c)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+// Pixel Operator Mono: capitals span 0..700 above the baseline, the line box spans -100..700 (800 units).
+// The letters therefore sit 50/800 em above the box center; push the text down to center them.
+fun Modifier.centerCaps(): Modifier =
+    offset { IntOffset(0, (TitleStyle.fontSize.toPx() * 50f / 800f).roundToInt()) }
 
 private val colors = darkColorScheme(
     primary = LoggerColors.Fg,

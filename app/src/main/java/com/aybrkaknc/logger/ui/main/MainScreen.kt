@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -77,6 +78,7 @@ import com.aybrkaknc.logger.ui.LoggerField
 import com.aybrkaknc.logger.ui.theme.JetBrainsMono
 import com.aybrkaknc.logger.ui.theme.LoggerColors
 import com.aybrkaknc.logger.ui.theme.TitleStyle
+import com.aybrkaknc.logger.ui.theme.centerCaps
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -206,25 +208,37 @@ private fun withKeys(entries: List<LogEntry>): List<Keyed> {
 
 @Composable
 private fun Header(shizuku: ShizukuStatus) {
+    val context = LocalContext.current
     Row(
         Modifier.fillMaxWidth().background(LoggerColors.Panel).statusBarsPadding()
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(stringResource(R.string.title_main), style = TitleStyle)
-        Spacer(Modifier.width(10.dp))
         SittingCat()
+        Spacer(Modifier.width(10.dp))
+        Text(stringResource(R.string.title_main), style = TitleStyle, modifier = Modifier.centerCaps())
         Spacer(Modifier.weight(1f))
         val (color, label) = when (shizuku) {
             ShizukuStatus.READY -> LoggerColors.Fg to R.string.shizuku_ok
             ShizukuStatus.NO_PERMISSION -> LoggerColors.Yellow to R.string.shizuku_ok
             ShizukuStatus.NOT_RUNNING -> LoggerColors.Red to R.string.shizuku_missing
         }
-        Box(Modifier.size(8.dp).background(color, CircleShape))
-        Spacer(Modifier.width(6.dp))
-        Text(stringResource(label), color = LoggerColors.Dim, fontFamily = JetBrainsMono, fontSize = 10.sp)
+        Row(
+            Modifier.clickable { openShizuku(context) },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(8.dp).background(color, CircleShape))
+            Spacer(Modifier.width(6.dp))
+            Text(stringResource(label), color = LoggerColors.Dim, fontFamily = JetBrainsMono, fontSize = 10.sp)
+        }
     }
 }
+
+private fun openShizuku(context: Context) {
+    context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE)?.let { context.startActivity(it) }
+}
+
+private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
 
 @Composable
 private fun FilterBar(active: Boolean, onOpenFilter: () -> Unit, onSearch: () -> Unit, onExport: () -> Unit, onSettings: () -> Unit) {
