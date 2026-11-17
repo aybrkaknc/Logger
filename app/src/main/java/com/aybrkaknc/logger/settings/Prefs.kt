@@ -37,6 +37,20 @@ class Prefs(context: Context) {
         get() = filterPrefs.getString(KEY_TEXT, "") ?: ""
         set(v) = filterPrefs.edit { putString(KEY_TEXT, v) }
 
+    // Comma separated, as typed in the filter screen.
+    var tags: String
+        get() = filterPrefs.getString(KEY_TAGS, "") ?: ""
+        set(v) = filterPrefs.edit { putString(KEY_TAGS, v) }
+
+    var pids: String
+        get() = filterPrefs.getString(KEY_PIDS, "") ?: ""
+        set(v) = filterPrefs.edit { putString(KEY_PIDS, v) }
+
+    // "system", "en" or "tr". Applied in MainActivity.attachBaseContext.
+    var language: String
+        get() = settings.getString(KEY_LANGUAGE, "system") ?: "system"
+        set(v) = settings.edit { putString(KEY_LANGUAGE, v) }
+
     var showSystem: Boolean
         get() = filterPrefs.getBoolean(KEY_SYSTEM, false)
         set(v) = filterPrefs.edit { putBoolean(KEY_SYSTEM, v) }
@@ -50,6 +64,9 @@ class Prefs(context: Context) {
         const val KEY_LEVELS = "levels"
         const val KEY_TEXT = "text"
         const val KEY_SYSTEM = "system"
+        const val KEY_LANGUAGE = "language"
+        const val KEY_TAGS = "tags"
+        const val KEY_PIDS = "pids"
 
         const val DEFAULT_MAX_MB = 1024
         const val DEFAULT_FONT_SP = 14

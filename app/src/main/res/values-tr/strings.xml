@@ -19,6 +19,25 @@
     <string name="action_export">Dışa aktar</string>
     <string name="action_settings">Ayarlar</string>
     <string name="action_back">Geri</string>
+    <string name="action_pause">Listeyi duraklat</string>
+    <string name="action_resume">Listeye devam et</string>
+    <string name="action_clear">Ekranı temizle</string>
+    <string name="action_top">Başa dön</string>
+    <string name="paused">DURAKLATILDI</string>
+    <string name="search_prev">Önceki eşleşme</string>
+    <string name="search_next">Sonraki eşleşme</string>
+    <string name="select_mode">Çoklu Seç</string>
+    <string name="selected_count">%1$d seçili</string>
+    <string name="share_plain">Paylaş</string>
+    <string name="cancel">İptal</string>
+    <string name="stack_closed">[+] %1$d satır yığın izi</string>
+    <string name="stack_open">[-] %1$d satır yığın izi</string>
+    <string name="filter_tags_hint">Etiketler (virgülle)</string>
+    <string name="filter_pids_hint">PID\'ler (virgülle)</string>
+    <string name="filter_group_level">SEVİYE</string>
+    <string name="filter_group_tag">ETİKET</string>
+    <string name="filter_group_pid">PID</string>
+    <string name="filter_group_app">UYGULAMA</string>
 
     <!-- Entry menu -->
     <string name="copy_entry">Kopyala</string>
@@ -53,6 +72,8 @@
     <string name="settings_output">Çıktı klasörü</string>
     <string name="size_gb">%1$d GB</string>
     <string name="save">Kaydet</string>
+    <string name="settings_language">Dil</string>
+    <string name="lang_system">Sistem dili</string>
 
     <!-- Export -->
     <string name="export_title">Logu dışa aktar</string>

@@ -26,6 +26,29 @@ object LogLine {
         return if (f.size > 5 && isLevel(f[5])) f[2].toIntOrNull() ?: -1 else -1
     }
 
+    // With -v uid: [date, time, uid, pid, tid, L, "TAG: msg"]; without: [date, time, pid, tid, L, ...].
+    fun pid(line: String): Int {
+        val f = fields(line)
+        return when {
+            f.size > 5 && isLevel(f[5]) -> f[3].toIntOrNull() ?: -1
+            f.size > 4 && isLevel(f[4]) -> f[2].toIntOrNull() ?: -1
+            else -> -1
+        }
+    }
+
+    fun tag(line: String): String {
+        val f = fields(line)
+        val rest = when {
+            f.size > 6 && isLevel(f[5]) -> f[6]
+            f.size > 5 && isLevel(f[4]) -> f.drop(5).joinToString(" ")
+            else -> return ""
+        }
+        return rest.substringBefore(':').trim()
+    }
+
+    // Java stack frame line ("\tat com.example.Foo.bar(Foo.kt:12)").
+    fun isStackFrame(line: String) = line.contains("\tat ")
+
     fun levelBit(level: String): Int = when (level) {
         "E", "F" -> ERROR
         "W" -> WARN
@@ -36,8 +59,8 @@ object LogLine {
     fun alwaysShown(line: String) =
         line.contains("FATAL EXCEPTION") || line.contains("ANR in") || line.contains("died")
 
-    // Stack frames and noisy task queries are kept in files but not shown.
-    fun hidden(line: String) = line.contains("\tat ") || line.contains("getRecentTasks")
+    // Noisy task queries are kept in files but not shown. Stack frames are folded under their error line instead.
+    fun hidden(line: String) = line.contains("getRecentTasks")
 
     fun time(line: String): String = if (line.length >= 14) line.substring(6, 14) else ""
 }

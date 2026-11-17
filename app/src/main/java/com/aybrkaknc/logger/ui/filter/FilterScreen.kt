@@ -8,10 +8,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,6 +48,7 @@ import com.aybrkaknc.logger.ui.LoggerField
 import com.aybrkaknc.logger.ui.ScreenHeader
 import com.aybrkaknc.logger.ui.theme.JetBrainsMono
 import com.aybrkaknc.logger.ui.theme.LoggerColors
+import com.aybrkaknc.logger.ui.theme.PixelCutShape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -59,6 +62,8 @@ fun FilterScreen(onBack: () -> Unit) {
     var packages by remember { mutableStateOf(prefs.packages) }
     var levels by remember { mutableIntStateOf(prefs.levels) }
     var showSystem by remember { mutableStateOf(prefs.showSystem) }
+    var tags by remember { mutableStateOf(prefs.tags) }
+    var pids by remember { mutableStateOf(prefs.pids) }
     var query by rememberSaveable { mutableStateOf("") }
 
     val apps by produceState(emptyList<AppInfo>()) {
@@ -85,30 +90,46 @@ fun FilterScreen(onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(LoggerColors.Bg)) {
         ScreenHeader(stringResource(R.string.filter_title), onBack)
-        LazyColumn(Modifier.fillMaxSize().navigationBarsPadding()) {
-            item {
-                LoggerField(query, { query = it }, stringResource(R.string.filter_app_search), Modifier.padding(16.dp, 12.dp))
-            }
-            item {
-                Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for ((bit, label) in listOf(LogLine.ERROR to R.string.lvl_error, LogLine.WARN to R.string.lvl_warn, LogLine.INFO to R.string.lvl_info)) {
-                        LevelChip(stringResource(label), levels and bit != 0, Modifier.weight(1f)) {
-                            levels = levels xor bit
-                            prefs.levels = levels
+        Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+            FilterBox {
+                    FilterCaption(stringResource(R.string.filter_group_level))
+                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for ((bit, label) in listOf(LogLine.ERROR to R.string.lvl_error, LogLine.WARN to R.string.lvl_warn, LogLine.INFO to R.string.lvl_info)) {
+                            LevelChip(stringResource(label), levels and bit != 0, Modifier.weight(1f)) {
+                                levels = levels xor bit
+                                prefs.levels = levels
+                            }
                         }
                     }
+                    FilterCaption(stringResource(R.string.filter_group_tag))
+                    LoggerField(
+                        tags,
+                        { tags = it; prefs.tags = it },
+                        stringResource(R.string.filter_tags_hint),
+                        Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp),
+                    )
+                    FilterCaption(stringResource(R.string.filter_group_pid))
+                    LoggerField(
+                        pids,
+                        { pids = it; prefs.pids = it },
+                        stringResource(R.string.filter_pids_hint),
+                        Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp),
+                    )
                 }
-            }
-            item {
+            FilterBox(Modifier.weight(1f)) {
+                FilterCaption(stringResource(R.string.filter_group_app))
+                LoggerField(query, { query = it }, stringResource(R.string.filter_app_search), Modifier.padding(12.dp, 4.dp))
                 CheckRow(stringResource(R.string.filter_show_system), showSystem) {
                     showSystem = !showSystem
                     prefs.showSystem = showSystem
                 }
+                LazyColumn(Modifier.weight(1f)) {
+                    item { Section(stringResource(R.string.filter_selected, selected.size)) }
+                    items(selected, key = { "s:" + it.pkg }) { AppRow(it, true) { togglePackage(it.pkg) } }
+                    item { Section(stringResource(R.string.filter_all_apps)) }
+                    items(others, key = { "a:" + it.pkg }) { AppRow(it, false) { togglePackage(it.pkg) } }
+                }
             }
-            item { Section(stringResource(R.string.filter_selected, selected.size)) }
-            items(selected, key = { "s:" + it.pkg }) { AppRow(it, true) { togglePackage(it.pkg) } }
-            item { Section(stringResource(R.string.filter_all_apps)) }
-            items(others, key = { "a:" + it.pkg }) { AppRow(it, false) { togglePackage(it.pkg) } }
         }
     }
 }
@@ -148,7 +169,7 @@ private fun CheckBoxMark(on: Boolean) {
 @Composable
 private fun CheckRow(label: String, on: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CheckBoxMark(on)
@@ -156,6 +177,43 @@ private fun CheckRow(label: String, on: Boolean, onClick: () -> Unit) {
         Text(label, color = LoggerColors.Fg, fontFamily = JetBrainsMono, fontSize = 13.sp)
     }
 }
+
+// Pixel-cut Panel card with a Dim border. Holds one or more captioned sections split by FilterDivider.
+@Composable
+private fun FilterBox(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val shape = PixelCutShape(4.dp)
+    Column(
+        modifier.fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .clip(shape)
+            .background(LoggerColors.Panel, shape)
+            .border(1.dp, LoggerColors.Dim, shape)
+            .padding(bottom = 14.dp),
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun FilterGroup(title: String, content: @Composable () -> Unit) {
+    FilterBox {
+        FilterCaption(title)
+        content()
+    }
+}
+
+@Composable
+private fun FilterCaption(title: String) {
+    Text(
+        title,
+        color = LoggerColors.Dim,
+        fontFamily = JetBrainsMono,
+        fontSize = 11.sp,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 4.dp),
+    )
+}
+
 
 @Composable
 private fun Section(title: String) {

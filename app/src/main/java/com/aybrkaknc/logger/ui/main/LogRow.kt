@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,7 +63,17 @@ import com.aybrkaknc.logger.ui.theme.PixelCutShape
 import kotlinx.coroutines.delay
 
 @Composable
-fun LogRow(entry: LogEntry, fontSp: Int, modifier: Modifier = Modifier) {
+fun LogRow(
+    entry: LogEntry,
+    fontSp: Int,
+    query: String,
+    current: Boolean,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    selectionMode: Boolean = false,
+    onToggleSelect: () -> Unit = {},
+    onStartSelect: () -> Unit = {},
+) {
     val context = LocalContext.current
     val density = LocalDensity.current
     var pressed by remember { mutableStateOf(false) }
@@ -70,7 +81,9 @@ fun LogRow(entry: LogEntry, fontSp: Int, modifier: Modifier = Modifier) {
     var pressAt by remember { mutableStateOf(Offset.Zero) }
     var rowWidth by remember { mutableIntStateOf(0) }
     var selectDialog by remember { mutableStateOf(false) }
-    val sel by animateFloatAsState(if (pressed || menu) 1f else 0f, tween(220), label = "sel")
+    var stackOpen by remember { mutableStateOf(false) }
+    val toggle by rememberUpdatedState(onToggleSelect)
+    val sel by animateFloatAsState(if (pressed || menu || selected) 1f else 0f, tween(220), label = "sel")
 
     val header = buildString {
         append(entry.time).append(" - ").append(stringResource(entry.levelLabel))
@@ -79,25 +92,50 @@ fun LogRow(entry: LogEntry, fontSp: Int, modifier: Modifier = Modifier) {
     val explain = entry.explain?.let { stringResource(it) }
 
     Box(modifier.fillMaxWidth().padding(bottom = 12.dp).onSizeChanged { rowWidth = it.width }) {
-        Text(
-            text = describe(header, explain, entry, sel, fontSp),
-            fontFamily = JetBrainsMono,
-            fontSize = fontSp.sp,
-            modifier = Modifier.fillMaxWidth()
-                .background(lerp(Color.Transparent, LoggerColors.Selected, sel), RoundedCornerShape(4.dp))
-                .pointerInput(entry.raw) {
-                    detectTapGestures(
-                        onPress = {
-                            pressed = true
-                            tryAwaitRelease()
-                            delay(150)
-                            pressed = false
-                        },
-                        onLongPress = { pressAt = it; menu = true },
+        Column(Modifier.fillMaxWidth()) {
+            Text(
+                text = describe(header, explain, entry, sel, fontSp, query, current),
+                fontFamily = JetBrainsMono,
+                fontSize = fontSp.sp,
+                modifier = Modifier.fillMaxWidth()
+                    .background(lerp(Color.Transparent, LoggerColors.Hint, sel), RoundedCornerShape(4.dp))
+                    .pointerInput(entry.raw, selectionMode) {
+                        if (selectionMode) {
+                            // In selection mode a tap or long-press only toggles this row.
+                            detectTapGestures(onTap = { toggle() }, onLongPress = { toggle() })
+                        } else {
+                            detectTapGestures(
+                                onPress = {
+                                    pressed = true
+                                    tryAwaitRelease()
+                                    delay(150)
+                                    pressed = false
+                                },
+                                onLongPress = { pressAt = it; menu = true },
+                            )
+                        }
+                    }
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+            )
+            if (entry.stack.isNotEmpty()) {
+                Text(
+                    stringResource(if (stackOpen) R.string.stack_open else R.string.stack_closed, entry.stack.size),
+                    color = LoggerColors.Dim,
+                    fontFamily = JetBrainsMono,
+                    fontSize = (fontSp * 0.8f).sp,
+                    modifier = Modifier.clickable { stackOpen = !stackOpen }.padding(horizontal = 4.dp, vertical = 4.dp),
+                )
+                if (stackOpen) {
+                    Text(
+                        entry.stack.joinToString("\n"),
+                        color = LoggerColors.Dim,
+                        fontFamily = JetBrainsMono,
+                        fontSize = (fontSp * 0.75f).sp,
+                        modifier = Modifier.padding(start = 16.dp, end = 4.dp),
                     )
                 }
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-        )
+            }
+        }
         if (menu) {
             // Own popup instead of DropdownMenu: its built-in vertical padding left black bars above and below the items.
             // Opens at the long-press point, kept inside the row horizontally.
@@ -117,6 +155,8 @@ fun LogRow(entry: LogEntry, fontSp: Int, modifier: Modifier = Modifier) {
                         .border(1.dp, LoggerColors.Dim, shape),
                 ) {
                     MenuItem(R.string.copy_entry) { menu = false; copy(context, entry.raw) }
+                    MenuItemDivider()
+                    MenuItem(R.string.select_mode) { menu = false; onStartSelect() }
                     MenuItemDivider()
                     MenuItem(R.string.select_text) { menu = false; selectDialog = true }
                     MenuItemDivider()
@@ -168,13 +208,45 @@ private fun MenuItemDivider() {
     Box(Modifier.fillMaxWidth().height(1.dp).background(LoggerColors.Dim))
 }
 
-private fun describe(header: String, explain: String?, entry: LogEntry, sel: Float, fontSp: Int): AnnotatedString {
-    val headerColor = lerp(entry.levelColor, LoggerColors.White, sel)
-    val bodyColor = lerp(LoggerColors.Dim, LoggerColors.White, sel)
+// Marks every case-insensitive occurrence of query; offsets come from the original text, so they stay valid.
+private fun AnnotatedString.Builder.appendMarked(text: String, query: String, mark: Color) {
+    if (query.isEmpty()) {
+        append(text)
+        return
+    }
+    var i = 0
+    while (true) {
+        val j = text.indexOf(query, i, ignoreCase = true)
+        if (j < 0) {
+            append(text.substring(i))
+            return
+        }
+        append(text.substring(i, j))
+        withStyle(SpanStyle(background = mark, color = LoggerColors.Bg)) { append(text.substring(j, j + query.length)) }
+        i = j + query.length
+    }
+}
+
+private fun describe(
+    header: String,
+    explain: String?,
+    entry: LogEntry,
+    sel: Float,
+    fontSp: Int,
+    query: String,
+    current: Boolean,
+): AnnotatedString {
+    val headerColor = lerp(entry.levelColor, LoggerColors.Bg, sel)
+    val bodyColor = lerp(LoggerColors.Dim, LoggerColors.Bg, sel)
     return buildAnnotatedString {
+        withStyle(SpanStyle(color = LoggerColors.Dim)) { append("> ") }
         withStyle(SpanStyle(color = headerColor, fontWeight = FontWeight.Bold)) { append(header) }
         if (explain != null) withStyle(SpanStyle(color = headerColor)) { append("\n$explain") }
-        withStyle(SpanStyle(color = bodyColor, fontSize = (fontSp * 0.8f).sp)) { append("\n${entry.raw}") }
+        withStyle(SpanStyle(color = bodyColor, fontSize = (fontSp * 0.8f).sp)) {
+            append("\n")
+            // The match being navigated to is green, the rest yellow.
+            appendMarked(entry.raw, query, if (current) LoggerColors.Fg else LoggerColors.Yellow)
+        }
     }
 }
 

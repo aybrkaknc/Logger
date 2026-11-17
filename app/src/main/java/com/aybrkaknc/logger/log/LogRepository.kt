@@ -6,6 +6,9 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 
+// One displayed log line plus the stack frames ("at ...") folded under it, in file order.
+data class RawLog(val line: String, val stack: List<String>)
+
 class LogRepository(context: Context) {
     private val dir: File = context.getExternalFilesDir(null) ?: context.filesDir
 
@@ -13,23 +16,40 @@ class LogRepository(context: Context) {
     val filteredFile = File(dir, "filtered-log.txt")
 
     // Newest first. Reads only the tail of the file to keep refreshes cheap.
-    fun recentLines(file: File, filter: LogFilter, limit: Int = 200, tailBytes: Long = 300_000): List<String> {
+    // minOffset hides everything written before it (used by "clear screen"); it always sits on a line boundary.
+    fun recentLines(
+        file: File,
+        filter: LogFilter,
+        minOffset: Long = 0,
+        limit: Int = 200,
+        tailBytes: Long = 300_000,
+    ): List<RawLog> {
         if (!file.exists()) return emptyList()
         val text = RandomAccessFile(file, "r").use { raf ->
-            val start = maxOf(0L, raf.length() - tailBytes)
+            val start = maxOf(minOffset, raf.length() - tailBytes)
+            if (start >= raf.length()) return emptyList()
             raf.seek(start)
             val buf = ByteArray((raf.length() - start).toInt())
             raf.readFully(buf)
-            Pair(String(buf, Charsets.UTF_8), start > 0)
+            Pair(String(buf, Charsets.UTF_8), start > minOffset)
         }
         val lines = text.first.split('\n')
         val from = if (text.second) 1 else 0 // first line may be cut in half
-        val out = ArrayList<String>(limit)
+        val out = ArrayList<RawLog>(limit)
+        // Walking newest to oldest, stack frames show up before the error line they belong to.
+        val frames = ArrayList<String>()
         for (i in lines.lastIndex downTo from) {
             val line = lines[i]
-            if (line.isBlank() || LogLine.hidden(line) || !filter.matches(line)) continue
-            out.add(line)
-            if (out.size >= limit) break
+            if (line.isBlank() || LogLine.hidden(line)) continue
+            if (LogLine.isStackFrame(line)) {
+                frames.add(line.substring(line.indexOf("\tat ") + 1))
+                continue
+            }
+            if (filter.matches(line)) {
+                out.add(RawLog(line, frames.reversed()))
+                if (out.size >= limit) break
+            }
+            frames.clear()
         }
         return out
     }

@@ -1,5 +1,6 @@
 package com.aybrkaknc.logger.ui.settings
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -52,6 +53,8 @@ fun SettingsScreen(onBack: () -> Unit) {
     var fontSp by remember { mutableIntStateOf(prefs.fontSp) }
     var folder by remember { mutableStateOf(prefs.exportName ?: Prefs.EXPORT_DIR) }
     var sheet by remember { mutableStateOf<Sheet?>(null) }
+    var language by remember { mutableStateOf(prefs.language) }
+    var langOpen by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
@@ -70,6 +73,29 @@ fun SettingsScreen(onBack: () -> Unit) {
         SettingRow(stringResource(R.string.settings_max_size), stringResource(R.string.size_gb, maxGb)) { sheet = Sheet.MaxSize }
         SettingRow(stringResource(R.string.settings_font_size), fontSp.toString()) { sheet = Sheet.FontSize }
         SettingRow(stringResource(R.string.settings_output), folder, valueSize = 16) { picker.launch(null) }
+        SettingRow(stringResource(R.string.settings_language), languageName(language)) { langOpen = true }
+    }
+
+    if (langOpen) {
+        ModalBottomSheet(onDismissRequest = { langOpen = false }, containerColor = LoggerColors.Panel) {
+            Column(Modifier.padding(horizontal = 20.dp).navigationBarsPadding()) {
+                for (code in listOf("system", "en", "tr")) {
+                    Text(
+                        languageName(code),
+                        color = if (code == language) LoggerColors.Fg else LoggerColors.Dim,
+                        fontFamily = JetBrainsMono,
+                        fontSize = 16.sp,
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            prefs.language = code
+                            language = code
+                            langOpen = false
+                            // Recreate so the new locale applies to every string on screen.
+                            (context as? Activity)?.recreate()
+                        }.padding(vertical = 14.dp),
+                    )
+                }
+            }
+        }
     }
 
     sheet?.let { current ->
@@ -130,4 +156,11 @@ private fun SettingRow(label: String, value: String, valueSize: Int = 22, onClic
         Text(value, color = LoggerColors.Fg, fontFamily = JetBrainsMono, fontSize = valueSize.sp, modifier = Modifier.padding(top = 6.dp))
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(LoggerColors.Divider))
+}
+
+@Composable
+private fun languageName(code: String): String = when (code) {
+    "en" -> "English"
+    "tr" -> "Türkçe"
+    else -> stringResource(R.string.lang_system)
 }

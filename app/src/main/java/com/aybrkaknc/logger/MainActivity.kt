@@ -1,6 +1,7 @@
 package com.aybrkaknc.logger
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -15,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.aybrkaknc.logger.service.LogService
+import com.aybrkaknc.logger.settings.Prefs
 import com.aybrkaknc.logger.service.ShizukuLogcat
 import com.aybrkaknc.logger.service.ShizukuStatus
 import com.aybrkaknc.logger.ui.filter.FilterScreen
@@ -26,6 +28,10 @@ import rikka.shizuku.Shizuku
 private enum class Screen { Main, Filter, Settings }
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(withLanguage(newBase, Prefs(newBase).language))
+    }
+
     private var shizuku by mutableStateOf(ShizukuStatus.NOT_RUNNING)
     private var startAfterGrant = false
 
@@ -97,4 +103,13 @@ class MainActivity : ComponentActivity() {
             ShizukuStatus.NOT_RUNNING -> Toast.makeText(this, R.string.shizuku_not_running, Toast.LENGTH_LONG).show()
         }
     }
+}
+
+// "system" keeps the device language; otherwise the context is forced to the chosen locale.
+private fun withLanguage(base: Context, lang: String): Context {
+    if (lang == "system") return base
+    val locale = java.util.Locale.forLanguageTag(lang)
+    val config = android.content.res.Configuration(base.resources.configuration)
+    config.setLocale(locale)
+    return base.createConfigurationContext(config)
 }

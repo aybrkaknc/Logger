@@ -15,10 +15,13 @@ data class LogEntry(
     val levelColor: Color,
     val app: String,
     @param:StringRes val explain: Int?,
+    val stack: List<String> = emptyList(),
 )
 
 class LogDescriber(private val context: Context) {
     private val names = ConcurrentHashMap<Int, String>()
+
+    fun describe(raw: RawLog): LogEntry = describe(raw.line).copy(stack = raw.stack)
 
     fun describe(line: String): LogEntry {
         val level = LogLine.level(line)
