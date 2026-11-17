@@ -53,7 +53,7 @@ Logger records the device logcat in a foreground service and lets you filter and
 * Export logs to a folder chosen with the system file picker
 * English and Turkish UI
 
-Version 0.1.0 is a full rewrite in Kotlin and Jetpack Compose. The old app was an apktool-decoded smali project.
+Version 0.2.0 is a full rewrite in Kotlin and Jetpack Compose. The old app was an apktool-decoded smali project.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

@@ -53,7 +53,7 @@ Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmen
 * Logları sistem dosya seçicisiyle seçilen klasöre dışa aktar
 * İngilizce ve Türkçe arayüz
 
-0.1.0 sürümü Kotlin ve Jetpack Compose ile baştan yazıldı. Eski uygulama apktool ile çözülmüş bir smali projesiydi.
+0.2.0 sürümü Kotlin ve Jetpack Compose ile baştan yazıldı. Eski uygulama apktool ile çözülmüş bir smali projesiydi.
 
 <p align="right">(<a href="#readme-top">başa dön</a>)</p>
 
