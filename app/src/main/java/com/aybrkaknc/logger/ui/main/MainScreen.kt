@@ -3,6 +3,10 @@ package com.aybrkaknc.logger.ui.main
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -20,7 +24,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import java.io.File
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -55,10 +59,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -66,6 +72,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
@@ -94,6 +104,8 @@ import com.aybrkaknc.logger.ui.IconBtn
 import com.aybrkaknc.logger.ui.LoggerField
 import com.aybrkaknc.logger.ui.theme.JetBrainsMono
 import com.aybrkaknc.logger.ui.theme.LoggerColors
+import com.aybrkaknc.logger.ui.pulseGlow
+import com.aybrkaknc.logger.ui.recordGlow
 import com.aybrkaknc.logger.ui.theme.PixelCutShape
 import com.aybrkaknc.logger.ui.theme.TitleStyle
 import com.aybrkaknc.logger.ui.theme.centerCaps
@@ -141,8 +153,22 @@ fun MainScreen(
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
     BackHandler(enabled = selected.isNotEmpty()) { selected = emptySet() }
     val listState = rememberLazyListState()
+    // Scrolling down hides the buffer tabs and scrolling up brings them back; the top always shows them.
+    var tabsVisible by remember { mutableStateOf(true) }
+    LaunchedEffect(listState) {
+        var lastIndex = 0
+        var lastOffset = 0
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }.collect { (index, offset) ->
+            val down = index > lastIndex || (index == lastIndex && offset > lastOffset)
+            val up = index < lastIndex || (index == lastIndex && offset < lastOffset)
+            if (index == 0 && offset < 40) tabsVisible = true else if (down) tabsVisible = false else if (up) tabsVisible = true
+            lastIndex = index
+            lastOffset = offset
+        }
+    }
     // Shows the "back to top" button once the list is scrolled past the first few rows.
     val showTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 5 } }
+    val atTop by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 } }
     val scope = rememberCoroutineScope()
 
     // Reload the tail of the filtered log once per second while visible. Restarts (and reloads at once) on search,
@@ -163,15 +189,9 @@ fun MainScreen(
                     }
                     // Unread dots: a tab that is not open lights up once its file grows past the mark from when it was last open.
                     val watch = withContext(Dispatchers.IO) {
-                        val filter = LogFilter.from(context, prefs)
                         tabs.associateWith { b ->
                             val f = repo.liveFile(b)
-                            if (f == null) {
-                                Mark("", 0L)
-                            } else {
-                                val len = if (filter.isActive) File(repo.filteredDir, f.name).let { if (it.exists()) it.length() else 0L } else f.length()
-                                Mark(f.name, len)
-                            }
+                            if (f == null) Mark("", 0L) else Mark(f.name, f.length())
                         }
                     }
                     val open = if (buffer == "all") tabs else listOf(buffer)
@@ -243,7 +263,7 @@ fun MainScreen(
 
     Box(Modifier.fillMaxSize().background(LoggerColors.Bg)) {
         Column(Modifier.fillMaxSize()) {
-            Header(shizuku)
+            Header()
             if (selected.isNotEmpty()) {
                 // Chronological (oldest first) text of the picked rows, stack frames included.
                 fun pickedText() = rows.filter { it.key in selected }.reversed().joinToString("\n") { row ->
@@ -280,7 +300,7 @@ fun MainScreen(
                 )
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(LoggerColors.Fg))
-            run {
+            AnimatedVisibility(tabsVisible, enter = expandVertically(tween(220)), exit = shrinkVertically(tween(220))) {
                 BufferTabs(listOf("all") + tabs, buffer, unread) {
                     buffer = it
                     clearedAt = 0L
@@ -303,8 +323,7 @@ fun MainScreen(
             }
             // The log body, below the header divider.
             Box(
-                Modifier.weight(1f).fillMaxWidth().navigationBarsPadding()
-                    .padding(top = 4.dp, bottom = 16.dp),
+                Modifier.weight(1f).fillMaxWidth().navigationBarsPadding().padding(top = 4.dp),
             ) {
             if (rows.isEmpty()) {
                 if (buffer == "all" || buffer == "main") {
@@ -342,6 +361,17 @@ fun MainScreen(
                     }
                 }
             }
+            // Top fade only once the list is scrolled down, so the newest lines stay fully visible.
+            val topFade by animateFloatAsState(if (atTop) 0f else 1f, tween(150), label = "topFade")
+            Box(
+                Modifier.align(Alignment.TopCenter).fillMaxWidth().height(48.dp)
+                    .graphicsLayer { alpha = topFade }
+                    .background(Brush.verticalGradient(listOf(LoggerColors.Bg, Color.Transparent))),
+            )
+            Box(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(48.dp)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, LoggerColors.Bg))),
+            )
             }
         }
         Row(
@@ -402,7 +432,7 @@ private fun withKeys(entries: List<LogEntry>): List<Keyed> {
 }
 
 @Composable
-private fun Header(shizuku: ShizukuStatus) {
+private fun Header() {
     val context = LocalContext.current
     Row(
         Modifier.fillMaxWidth().statusBarsPadding()
@@ -419,22 +449,6 @@ private fun Header(shizuku: ShizukuStatus) {
                 fontSize = 5.sp,
                 lineHeight = 5.sp,
                 color = if (pressed) LoggerColors.Bg else LoggerColors.Fg,
-            )
-        }
-        Spacer(Modifier.weight(1f))
-        val (color, label) = when (shizuku) {
-            ShizukuStatus.READY -> LoggerColors.Fg to R.string.shizuku_ok
-            ShizukuStatus.NO_PERMISSION -> LoggerColors.Yellow to R.string.shizuku_ok
-            ShizukuStatus.NOT_RUNNING -> LoggerColors.Red to R.string.shizuku_missing
-        }
-        PressPill(onClick = { openShizuku(context) }) { pressed ->
-            Box(Modifier.size(8.dp).background(if (pressed) LoggerColors.Bg else color, CircleShape))
-            Spacer(Modifier.width(6.dp))
-            Text(
-                stringResource(label),
-                color = if (pressed) LoggerColors.Bg else LoggerColors.Dim,
-                fontFamily = JetBrainsMono,
-                fontSize = 10.sp,
             )
         }
     }
@@ -477,12 +491,6 @@ private val LOGO_LINES = listOf(
     """\________|\______/  \______/  \______/ \________|\__|  \__|""",
 )
 
-
-private fun openShizuku(context: Context) {
-    context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE)?.let { context.startActivity(it) }
-}
-
-private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
 
 @Composable
 private fun FilterBar(active: Boolean, onOpenFilter: () -> Unit, onSearch: () -> Unit, onFiles: () -> Unit, onSettings: () -> Unit) {
@@ -650,13 +658,17 @@ private fun ToggleButton(running: Boolean, onClick: () -> Unit, modifier: Modifi
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.9f else 1f, tween(if (pressed) 80 else 120), label = "press")
+    // Green glow that breathes while idle, faster once recording runs.
+    val glow = key(running) { pulseGlow(running) }
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         color = LoggerColors.Fg,
-        border = BorderStroke(2.dp, Color.Black),
         interactionSource = interaction,
-        modifier = modifier.size(RecordSize).graphicsLayer { scaleX = scale; scaleY = scale },
+        modifier = modifier
+            .size(RecordSize)
+            .recordGlow(glow, 12.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale },
     ) {
         Icon(
             painterResource(if (running) R.drawable.ic_stop else R.drawable.ic_play),

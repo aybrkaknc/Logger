@@ -38,6 +38,8 @@ object LoggerColors {
     val Field = Color(0xFF141414)
     val Hint = Color(0xFF2A9A2A)
     val Label = Color(0xFFE0E0E0)
+    // Soft grey for log messages, like a Windows terminal default.
+    val Soft = Color(0xFFCCCCCC)
     val Divider = Color(0xFF222222)
     val White = Color(0xFFFFFFFF)
 }

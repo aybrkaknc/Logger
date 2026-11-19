@@ -14,7 +14,6 @@ import com.aybrkaknc.logger.R
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.aybrkaknc.logger.export.ExportManager
-import com.aybrkaknc.logger.log.LogFilter
 import com.aybrkaknc.logger.log.LogRepository
 import com.aybrkaknc.logger.settings.Prefs
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +31,6 @@ class LogService : Service() {
     @Volatile private var binding: ShizukuLogcat.Binding? = null
     @Volatile private var worker: Thread? = null
     @Volatile private var sessionBase = ""
-    @Volatile private var sessionFilter: LogFilter? = null
     @Volatile private var sessionBuffers: List<String> = emptyList()
 
     override fun onCreate() {
@@ -62,110 +60,87 @@ class LogService : Service() {
             return
         }
         _running.value = true
-        // The filter and the buffer list are frozen for the whole recording.
-        val filter = LogFilter.from(this, prefs)
+        // The buffer list is frozen for the whole recording.
         val base = repo.newSessionBase()
         val buffers = (Prefs.CORE_BUFFERS + prefs.buffers).distinct()
         sessionBase = base
-        sessionFilter = filter
         sessionBuffers = buffers
-        worker = thread(name = "logcat") { readAll(filter, base, buffers) }
+        worker = thread(name = "logcat") { readAll(base, buffers) }
     }
 
     // Copies what has been recorded so far to the output folder under a new timestamp; recording goes on.
     private fun saveSnapshot() {
-        val filter = sessionFilter ?: return
+        val source = sessionBase
         val buffers = sessionBuffers
-        val snapshot = repo.newSessionBase()
+        val target = repo.newSessionBase()
         thread(name = "logcat-save") {
-            val saved = mutableListOf<String>()
-            for (buf in buffers) {
-                val source = LogRepository.fileName(sessionBase, buf)
-                val target = LogRepository.fileName(snapshot, buf)
-                if (ExportManager.copyToOutput(this, File(repo.rawDir, source), "raw-log", target)) saved.add(target)
-                if (filter.isActive) ExportManager.copyToOutput(this, File(repo.filteredDir, source), "filtered-log", target)
-            }
-            val msg = if (saved.isEmpty()) {
+            val msg = if (exportSession(source, target, buffers) == 0) {
                 getString(R.string.save_empty)
             } else {
-                val others = saved.drop(1).map { it.substringAfterLast('-').removeSuffix(".txt") }
-                val name = saved.first() + if (others.isEmpty()) "" else " (${others.joinToString(", ")})"
-                val folder = (prefs.exportName ?: Prefs.EXPORT_DIR).trim('/') + "/raw-log"
-                getString(R.string.save_done, name, folder)
+                getString(R.string.save_done, target, (prefs.exportName ?: Prefs.EXPORT_DIR).trim('/'))
             }
             main.post { Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
         }
     }
 
-    // One logcat process and one reader thread per buffer; each buffer writes its own files:
-    // raw-log/<base>-<buffer>.txt always, filtered-log/<base>-<buffer>.txt when a filter is active.
-    private fun readAll(filter: LogFilter, base: String, buffers: List<String>) {
+    // Copies one session's files to <output folder>/<buffer>/<target>.txt, and the all-buffer file to
+    // <output folder>/all/<target>.txt. Returns how many files were copied.
+    private fun exportSession(source: String, target: String, buffers: List<String>): Int =
+        (buffers + ALL).count { buf ->
+            ExportManager.copyToOutput(this, File(repo.rawDir, LogRepository.fileName(source, buf)), buf, "$target.txt")
+        }
+
+    // One logcat process and one reader thread per buffer, plus one process reading all of them together
+    // (the ALL file). Files are always raw and unfiltered: raw-log/<base>-<buffer>.txt and raw-log/<base>-all.txt.
+    private fun readAll(base: String, buffers: List<String>) {
         val b = ShizukuLogcat.bind(this)
         if (b == null || !_running.value) {
             b?.let { ShizukuLogcat.unbind(this, it.connection) }
         } else {
             binding = b
-            buffers.map { buf -> thread(name = "logcat-$buf") { readBuffer(b, buf, filter, base) } }
-                .forEach { it.join() }
+            val streams = buffers.map { buf -> thread(name = "logcat-$buf") { readStream(b, argsFor(buf), base, buf, alerts = true) } } +
+                thread(name = "logcat-$ALL") { readStream(b, argsFor(buffers.joinToString(",")), base, ALL, alerts = false) }
+            streams.forEach { it.join() }
         }
         _running.value = false
         // Recording is over: copy the finished files into the output folder once, not live.
-        for (buf in buffers) {
-            val name = LogRepository.fileName(base, buf)
-            ExportManager.copyToOutput(this, File(repo.rawDir, name), "raw-log", name)
-            if (filter.isActive) ExportManager.copyToOutput(this, File(repo.filteredDir, name), "filtered-log", name)
-        }
+        exportSession(base, base, buffers)
         main.post { finalizeStop(recorded = true) }
     }
 
-    private fun readBuffer(b: ShizukuLogcat.Binding, buffer: String, filter: LogFilter, base: String) {
-        val name = LogRepository.fileName(base, buffer)
-        val rawFile = File(repo.rawDir, name)
-        val filteredFile = if (filter.isActive) File(repo.filteredDir, name) else null
+    private fun readStream(b: ShizukuLogcat.Binding, args: Array<String>, base: String, name: String, alerts: Boolean) {
+        val file = File(repo.rawDir, LogRepository.fileName(base, name))
         try {
-            val pfd = b.service.start(argsFor(buffer))
+            val pfd = b.service.start(args)
             ParcelFileDescriptor.AutoCloseInputStream(pfd).bufferedReader().use { reader ->
                 var raw: BufferedWriter? = null
-                var filtered: BufferedWriter? = null
                 try {
                     var count = 0
                     while (_running.value) {
                         val line = reader.readLine() ?: break
-                        if (prefs.crashAlert && (line.contains("FATAL EXCEPTION") || line.contains("ANR in"))) {
+                        if (alerts && prefs.crashAlert && (line.contains("FATAL EXCEPTION") || line.contains("ANR in"))) {
                             Notifications.crash(this, line)
                         }
                         // Files are created on the first line, so a silent buffer leaves no empty file.
-                        val rawOut = raw ?: open(rawFile).also { raw = it }
-                        rawOut.write(line)
-                        rawOut.newLine()
-                        rawOut.flush()
-                        if (filteredFile != null && filter.matches(line)) {
-                            val filteredOut = filtered ?: open(filteredFile).also { filtered = it }
-                            filteredOut.write(line)
-                            filteredOut.newLine()
-                            filteredOut.flush()
-                        }
+                        val out = raw ?: open(file).also { raw = it }
+                        out.write(line)
+                        out.newLine()
+                        out.flush()
                         if (++count % 500 == 0) {
                             val max = prefs.maxMb * 1024L * 1024L
-                            if (rawFile.length() > max) {
+                            if (file.length() > max) {
                                 raw?.close()
-                                LogRepository.trim(rawFile, max / 2)
-                                raw = open(rawFile)
-                            }
-                            if (filteredFile != null && filtered != null && filteredFile.length() > max) {
-                                filtered?.close()
-                                LogRepository.trim(filteredFile, max / 2)
-                                filtered = open(filteredFile)
+                                LogRepository.trim(file, max / 2)
+                                raw = open(file)
                             }
                         }
                     }
                 } finally {
                     raw?.close()
-                    filtered?.close()
                 }
             }
         } catch (_: Exception) {
-            // This buffer's stream closed or was refused; the others keep going.
+            // This stream closed or was refused; the others keep going.
         }
     }
 
@@ -202,6 +177,7 @@ class LogService : Service() {
         const val ACTION_START = "com.aybrkaknc.logger.START"
         const val ACTION_STOP = "com.aybrkaknc.logger.STOP"
         const val ACTION_SAVE = "com.aybrkaknc.logger.SAVE"
+        private const val ALL = "all"
 
         // -T 1: follow only new lines instead of replaying the whole buffer on every start.
         private fun argsFor(buffer: String) =

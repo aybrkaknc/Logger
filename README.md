@@ -50,7 +50,7 @@ Logger records the device logcat in a foreground service and lets you filter, sa
 * Filter by app and by level (error, warning, info), optionally including system apps
 * Log line format: `HH:MM:SS - LEVEL - App`, with short explanations for crashes and ANRs
 * Configurable maximum log size (1-10 GB) and log text size
-* Save logs to the folder you choose, one file per recording and buffer
+* Save logs to the folder you choose: one folder per buffer and an all folder, one file per recording
 * Record extra buffers (radio, events, security, stats, kernel) and view each as a tab; ALL merges every open buffer
 * Save a snapshot of a running recording without stopping it
 * Browse, search, share and delete saved logs inside the app

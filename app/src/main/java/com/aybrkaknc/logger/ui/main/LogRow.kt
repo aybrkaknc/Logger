@@ -8,21 +8,18 @@ import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.onSizeChanged
-import kotlin.math.roundToInt
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -31,6 +28,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,15 +36,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -60,7 +54,6 @@ import com.aybrkaknc.logger.R
 import com.aybrkaknc.logger.log.LogEntry
 import com.aybrkaknc.logger.ui.theme.JetBrainsMono
 import com.aybrkaknc.logger.ui.theme.LoggerColors
-import com.aybrkaknc.logger.ui.theme.PixelCutShape
 import kotlinx.coroutines.delay
 
 @Composable
@@ -77,29 +70,21 @@ fun LogRow(
     onStartSelect: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val density = LocalDensity.current
     var pressed by remember { mutableStateOf(false) }
-    var menu by remember { mutableStateOf(false) }
-    var pressAt by remember { mutableStateOf(Offset.Zero) }
-    var rowWidth by remember { mutableIntStateOf(0) }
     var selectDialog by remember { mutableStateOf(false) }
     var stackOpen by remember { mutableStateOf(false) }
+    // Changing the selection mode cancels the pending press release, so the highlight would stay on without this.
+    LaunchedEffect(selectionMode) { pressed = false }
     val toggle by rememberUpdatedState(onToggleSelect)
-    val sel by animateFloatAsState(if (pressed || menu || selected) 1f else 0f, tween(220), label = "sel")
+    val sel by animateFloatAsState(if (pressed || selected) 1f else 0f, tween(220), label = "sel")
 
-    val head = entry.time + " - " + stringResource(entry.levelLabel)
-    val header = if (entry.app.isNotEmpty()) "$head - ${entry.app}" else head
     val explain = entry.explain?.let { stringResource(it) }
 
-    Box(modifier.fillMaxWidth().padding(bottom = 12.dp).onSizeChanged { rowWidth = it.width }) {
+    Box(modifier.fillMaxWidth().padding(bottom = 12.dp)) {
         Column(Modifier.fillMaxWidth()) {
-            Text(
-                text = describe(head, explain, entry, sel, fontSp, query, current),
-                fontFamily = JetBrainsMono,
-                fontSize = fontSp.sp,
-                maxLines = if (singleLine) 1 else Int.MAX_VALUE,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                Modifier.fillMaxWidth()
+                    .height(IntrinsicSize.Min)
                     .background(lerp(Color.Transparent, LoggerColors.Hint, sel), RoundedCornerShape(4.dp))
                     .pointerInput(entry.raw, selectionMode) {
                         if (selectionMode) {
@@ -113,12 +98,49 @@ fun LogRow(
                                     delay(150)
                                     pressed = false
                                 },
-                                onLongPress = { pressAt = it; menu = true },
+                                // A tap opens the full text, so cut-off parts can be read.
+                                onTap = { selectDialog = true },
+                                onLongPress = { onStartSelect() },
                             )
                         }
                     }
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-            )
+                    .padding(vertical = 2.dp),
+            ) {
+                // Level name, centred in an unfilled strip and turned to read bottom to top.
+                Row(Modifier.width(22.dp).fillMaxHeight()) {
+                    // Level name turned and centred; the colour bar sits on its right, next to the log text.
+                    Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                        Text(
+                            entry.badge,
+                            color = lerp(entry.levelColor, LoggerColors.Bg, sel),
+                            fontFamily = JetBrainsMono,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.wrapContentWidth(unbounded = true).graphicsLayer { rotationZ = -90f },
+                        )
+                    }
+                    Box(Modifier.width(3.dp).fillMaxHeight().background(entry.levelColor))
+                }
+                Column(Modifier.weight(1f).padding(start = 6.dp, end = 4.dp)) {
+                    // The meta line never wraps; it ends with "..." when the row is too narrow.
+                    Text(
+                        text = describeMeta(entry.time, null, entry, sel, fontSp),
+                        fontFamily = JetBrainsMono,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = describeBody(explain, entry, sel, fontSp, query, current),
+                        fontFamily = JetBrainsMono,
+                        fontSize = fontSp.sp,
+                        maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
             if (entry.stack.isNotEmpty()) {
                 Text(
                     stringResource(if (stackOpen) R.string.stack_open else R.string.stack_closed, entry.stack.size),
@@ -138,76 +160,69 @@ fun LogRow(
                 }
             }
         }
-        if (menu) {
-            // Own popup instead of DropdownMenu: its built-in vertical padding left black bars above and below the items.
-            // Opens at the long-press point, kept inside the row horizontally.
-            val menuWidth = with(density) { 200.dp.roundToPx() }
-            val x = pressAt.x.roundToInt().coerceIn(0, maxOf(0, rowWidth - menuWidth))
-            Popup(
-                alignment = Alignment.TopStart,
-                offset = IntOffset(x, pressAt.y.roundToInt()),
-                onDismissRequest = { menu = false },
-                properties = PopupProperties(focusable = true),
-            ) {
-                val shape = PixelCutShape(4.dp)
-                Column(
-                    Modifier.width(200.dp)
-                        .clip(shape)
-                        .background(LoggerColors.Panel, shape)
-                        .border(1.dp, LoggerColors.Dim, shape),
-                ) {
-                    MenuItem(R.string.copy_entry) { menu = false; copy(context, entry.raw) }
-                    MenuItemDivider()
-                    MenuItem(R.string.select_mode) { menu = false; onStartSelect() }
-                    MenuItemDivider()
-                    MenuItem(R.string.select_text) { menu = false; selectDialog = true }
-                    MenuItemDivider()
-                    MenuItem(R.string.action_share) { menu = false; share(context, entry.raw) }
-                }
-            }
-        }
     }
 
     if (selectDialog) {
-        val plain = listOfNotNull(header, explain, entry.raw).joinToString("\n")
         AlertDialog(
             onDismissRequest = { selectDialog = false },
             containerColor = LoggerColors.Panel,
             confirmButton = {
-                TextButton(onClick = { selectDialog = false }) { Text(stringResource(R.string.close), color = LoggerColors.Fg) }
+                Row {
+                    TextButton(onClick = { copy(context, entry.raw); selectDialog = false }) { Text(stringResource(R.string.copy_entry), color = LoggerColors.Fg) }
+                    TextButton(onClick = { share(context, entry.raw); selectDialog = false }) { Text(stringResource(R.string.action_share), color = LoggerColors.Fg) }
+                    TextButton(onClick = { selectDialog = false }) { Text(stringResource(R.string.close), color = LoggerColors.Fg) }
+                }
             },
             text = {
+                // One labelled line per field of the raw entry, then the explanation and the stack.
+                val parts = rawFormat.find(entry.raw)?.groupValues
                 SelectionContainer(Modifier.verticalScroll(rememberScrollState())) {
-                    Text(plain, color = LoggerColors.Fg, fontFamily = JetBrainsMono, fontSize = fontSp.sp)
+                    Column {
+                        if (explain != null) {
+                            Text(explain, color = entry.levelColor, fontFamily = JetBrainsMono, fontSize = fontSp.sp, modifier = Modifier.padding(bottom = 8.dp))
+                        }
+                        if (parts == null) {
+                            Text(entry.raw, color = LoggerColors.Soft, fontFamily = JetBrainsMono, fontSize = fontSp.sp)
+                        } else {
+                            val fields = listOf(
+                                R.string.field_date to parts[1],
+                                R.string.field_time to parts[2],
+                                R.string.field_uid to parts[3],
+                                R.string.field_pid to parts[4],
+                                R.string.field_tid to parts[5],
+                                R.string.field_level to stringResource(entry.levelLabel),
+                                R.string.field_tag to parts[7],
+                                R.string.field_app to entry.app,
+                                R.string.field_message to parts[8],
+                            )
+                            for ((label, value) in fields) {
+                                if (value.isEmpty()) continue
+                                Row(Modifier.padding(vertical = 2.dp)) {
+                                    Text(
+                                        stringResource(label),
+                                        color = LoggerColors.Gray,
+                                        fontFamily = JetBrainsMono,
+                                        fontSize = (fontSp * 0.8f).sp,
+                                        modifier = Modifier.width(88.dp),
+                                    )
+                                    Text(value, color = LoggerColors.Soft, fontFamily = JetBrainsMono, fontSize = fontSp.sp, modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                        if (entry.stack.isNotEmpty()) {
+                            Text(
+                                entry.stack.joinToString("\n"),
+                                color = LoggerColors.Dim,
+                                fontFamily = JetBrainsMono,
+                                fontSize = (fontSp * 0.75f).sp,
+                                modifier = Modifier.padding(top = 8.dp, start = 16.dp),
+                            )
+                        }
+                    }
                 }
             },
         )
     }
-}
-
-// Pressed item inverts: solid green bar with black text, no ripple.
-@Composable
-private fun MenuItem(label: Int, onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    Box(
-        Modifier.fillMaxWidth()
-            .background(if (pressed) LoggerColors.Fg else LoggerColors.Panel)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-    ) {
-        Text(
-            stringResource(label),
-            color = if (pressed) LoggerColors.Bg else LoggerColors.Fg,
-            fontFamily = JetBrainsMono,
-            fontSize = 13.sp,
-        )
-    }
-}
-
-@Composable
-private fun MenuItemDivider() {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(LoggerColors.Dim))
 }
 
 // Marks every case-insensitive occurrence of query; offsets come from the original text, so they stay valid.
@@ -229,8 +244,32 @@ private fun AnnotatedString.Builder.appendMarked(text: String, query: String, ma
     }
 }
 
-private fun describe(
-    head: String,
+private fun describeMeta(
+    time: String,
+    levelText: String?,
+    entry: LogEntry,
+    sel: Float,
+    fontSp: Int,
+): AnnotatedString {
+    val metaSize = (fontSp * 0.75f).sp
+    val headerColor = lerp(entry.levelColor, LoggerColors.Bg, sel)
+    return buildAnnotatedString {
+        withStyle(SpanStyle(color = lerp(LoggerColors.Gray, LoggerColors.Bg, sel), fontSize = metaSize)) { append(time) }
+        if (levelText != null) {
+            withStyle(SpanStyle(color = headerColor, fontWeight = FontWeight.Bold, fontSize = metaSize)) { append("  $levelText") }
+        }
+        if (entry.app.isNotEmpty()) {
+            withStyle(SpanStyle(color = lerp(entry.appColor, LoggerColors.Bg, sel), fontWeight = FontWeight.Bold, fontSize = metaSize)) { append("  ${entry.app}") }
+        }
+    }
+}
+
+// The meta line already shows the time, so the message drops the leading date and time.
+// Threadtime format: date, time, uid, pid, tid, level, tag, message.
+private val rawFormat = Regex("""^(\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\w)\s+(.*?):\s?(.*)$""")
+private val timestampPrefix = Regex("""^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s+""")
+
+private fun describeBody(
     explain: String?,
     entry: LogEntry,
     sel: Float,
@@ -239,18 +278,12 @@ private fun describe(
     current: Boolean,
 ): AnnotatedString {
     val headerColor = lerp(entry.levelColor, LoggerColors.Bg, sel)
-    val bodyColor = lerp(LoggerColors.Dim, LoggerColors.Bg, sel)
+    val bodyColor = lerp(LoggerColors.Soft, LoggerColors.Bg, sel)
     return buildAnnotatedString {
-        withStyle(SpanStyle(color = LoggerColors.Dim)) { append("> ") }
-        withStyle(SpanStyle(color = headerColor, fontWeight = FontWeight.Bold)) { append(head) }
-        if (entry.app.isNotEmpty()) {
-            withStyle(SpanStyle(color = lerp(entry.appColor, LoggerColors.Bg, sel), fontWeight = FontWeight.Bold)) { append(" - ${entry.app}") }
-        }
-        if (explain != null) withStyle(SpanStyle(color = headerColor)) { append("\n$explain") }
-        withStyle(SpanStyle(color = bodyColor, fontSize = (fontSp * 0.8f).sp)) {
-            append("\n")
+        if (explain != null) withStyle(SpanStyle(color = headerColor)) { append(explain + "\n") }
+        withStyle(SpanStyle(color = bodyColor, fontSize = (fontSp * 0.85f).sp)) {
             // The match being navigated to is green, the rest yellow.
-            appendMarked(entry.raw, query, if (current) LoggerColors.Fg else LoggerColors.Yellow)
+            appendMarked(entry.raw.replace(timestampPrefix, ""), query, if (current) LoggerColors.Fg else LoggerColors.Yellow)
         }
     }
 }

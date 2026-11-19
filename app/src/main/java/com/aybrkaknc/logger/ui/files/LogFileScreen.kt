@@ -88,7 +88,7 @@ fun LogFileScreen(item: LogFileItem, onBack: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            IconBtn(R.drawable.ic_export, R.string.action_share, onClick = { share(context, item) })
+            IconBtn(R.drawable.ic_share, R.string.action_share, onClick = { share(context, item) })
         }
         LoggerField(
             query,

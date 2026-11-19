@@ -12,6 +12,8 @@ data class LogEntry(
     val raw: String,
     val time: String,
     @param:StringRes val levelLabel: Int,
+    // Fixed English name for the side bar; it does not change with the app language.
+    val badge: String,
     val levelColor: Color,
     val app: String,
     @param:StringRes val explain: Int?,
@@ -20,7 +22,7 @@ data class LogEntry(
 )
 
 // Same app always gets the same hue, so its rows are easy to follow while scanning.
-private val appPalette = listOf(LoggerColors.Fg, LoggerColors.Cyan, LoggerColors.AppPurple, LoggerColors.AppOrange)
+private val appPalette = listOf(LoggerColors.Cyan, LoggerColors.AppPurple, LoggerColors.AppOrange)
 
 fun appColorFor(app: String): Color = appPalette[Math.floorMod(app.hashCode(), appPalette.size)]
 
@@ -31,16 +33,16 @@ class LogDescriber(private val context: Context) {
 
     fun describe(line: String): LogEntry {
         val level = LogLine.level(line)
-        val (label, color) = when {
-            level == "E" || level == "F" -> R.string.lvl_error to LoggerColors.Red
-            level == "W" || line.contains("died") -> R.string.lvl_warn to LoggerColors.Yellow
-            level == "D" -> R.string.lvl_debug to LoggerColors.Cyan
-            level == "V" -> R.string.lvl_verbose to LoggerColors.Gray
-            else -> R.string.lvl_info to LoggerColors.Fg
+        val (label, badge, color) = when {
+            level == "E" || level == "F" -> Triple(R.string.lvl_error, "ERROR", LoggerColors.Red)
+            level == "W" || line.contains("died") -> Triple(R.string.lvl_warn, "WARNING", LoggerColors.Yellow)
+            level == "D" -> Triple(R.string.lvl_debug, "DEBUG", LoggerColors.Cyan)
+            level == "V" -> Triple(R.string.lvl_verbose, "VERBOSE", LoggerColors.Gray)
+            else -> Triple(R.string.lvl_info, "INFO", LoggerColors.Fg)
         }
         val explain = PATTERNS.firstOrNull { line.contains(it.first) }?.second
         val app = appName(line)
-        return LogEntry(line, LogLine.time(line), label, color, app, explain, appColor = appColorFor(app))
+        return LogEntry(line, LogLine.time(line), label, badge, color, app, explain, appColor = appColorFor(app))
     }
 
     private fun appName(line: String): String {

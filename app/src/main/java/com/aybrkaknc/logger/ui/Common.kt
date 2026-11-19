@@ -2,7 +2,11 @@ package com.aybrkaknc.logger.ui
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,15 +27,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aybrkaknc.logger.R
@@ -70,9 +81,42 @@ fun ScreenHeader(title: String, onBack: () -> Unit, action: (@Composable () -> U
     ) {
         IconBtn(R.drawable.ic_back, R.string.action_back, onBack)
         Spacer(Modifier.width(8.dp))
-        Text(title, style = TitleStyle)
+        var titleSize by remember(title) { mutableStateOf(TitleStyle.fontSize) }
+        Text(
+            title,
+            style = TitleStyle.copy(fontSize = titleSize),
+            maxLines = 1,
+            softWrap = false,
+            // Shrinks the title step by step until it fits the row on one line.
+            onTextLayout = { if (it.hasVisualOverflow && titleSize > 12.sp) titleSize *= 0.9f },
+        )
         Spacer(Modifier.weight(1f))
         action?.invoke()
+    }
+}
+
+// Green glow that breathes between 0 and 1; faster while recording.
+@Composable
+fun pulseGlow(running: Boolean): Float {
+    val transition = rememberInfiniteTransition(label = "recordPulse")
+    return transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(if (running) 350 else 900), RepeatMode.Reverse),
+        label = "recordGlow",
+    ).value
+}
+
+// Eight thin rounded layers stack up toward the element: green near the edge, fading to transparent outward.
+fun Modifier.recordGlow(glow: Float, corner: Dp): Modifier = drawBehind {
+    for (i in 8 downTo 1) {
+        val pad = i * 0.75f * density
+        drawRoundRect(
+            color = LoggerColors.Fg.copy(alpha = 0.09f * glow),
+            topLeft = Offset(-pad, -pad),
+            size = Size(size.width + 2 * pad, size.height + 2 * pad),
+            cornerRadius = CornerRadius(corner.toPx() + pad),
+        )
     }
 }
 

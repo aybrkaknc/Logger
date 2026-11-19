@@ -10,15 +10,14 @@ import java.io.BufferedReader
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-// folder: "raw-log", "filtered-log", or "" for files exported by older versions at the top level.
+// folder: the buffer folder ("main", "all", ...), or "" for files exported by older versions at the top level.
 data class LogFileItem(val name: String, val uri: Uri, val modified: Long, val size: Long, val folder: String = "")
 
-// Recorded logs live in <output folder>/raw-log and <output folder>/filtered-log: the user's chosen
+// Recorded logs live in <output folder>/<buffer>/ (and <output folder>/all/): the user's chosen
 // folder (SAF tree) or Documents/Logs through MediaStore.
 object LogFiles {
     private val sessionName = Regex("""^\d{8}-\d{6}(-[a-z]+)?\.txt$""")
     private val legacyPrefixes = listOf("logcat-all-", "filtered-log-")
-    private val folders = setOf("raw-log", "filtered-log")
 
     fun list(context: Context): List<LogFileItem> {
         val tree = Prefs(context).exportTree
@@ -32,7 +31,7 @@ object LogFiles {
             val name = child.name ?: continue
             if (child.isFile && isLog(name)) {
                 out.add(LogFileItem(name, child.uri, child.lastModified(), child.length()))
-            } else if (child.isDirectory && name in folders) {
+            } else if (child.isDirectory) {
                 for (f in child.listFiles()) {
                     val fn = f.name ?: continue
                     if (f.isFile && isLog(fn)) out.add(LogFileItem(fn, f.uri, f.lastModified(), f.length(), name))

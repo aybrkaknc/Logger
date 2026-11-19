@@ -15,23 +15,14 @@ data class RawLog(val line: String, val stack: List<String>)
 class LogRepository(context: Context) {
     private val dir: File = context.getExternalFilesDir(null) ?: context.filesDir
 
-    // One file per recording, named by start time; the same name in both folders.
+    // One file per buffer and recording, named by start time. Filters only change what is shown.
     val rawDir = File(dir, "raw-log").apply { mkdirs() }
-    val filteredDir = File(dir, "filtered-log").apply { mkdirs() }
 
     fun newSessionBase(): String = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
 
-    // The newest session's file for the live screen: the filtered file when that session was
-    // filtered, otherwise its raw file.
-    fun liveFile(buffer: String = "main"): File? {
-        val raw = rawDir.listFiles()?.filter { matchesBuffer(it.name, buffer) }?.maxByOrNull { it.name }
-        val filtered = filteredDir.listFiles()?.filter { matchesBuffer(it.name, buffer) }?.maxByOrNull { it.name }
-        return when {
-            raw == null && filtered == null -> null
-            filtered != null && (raw == null || filtered.name >= raw.name) -> filtered
-            else -> raw
-        }
-    }
+    // The newest session's file of a buffer for the live screen.
+    fun liveFile(buffer: String = "main"): File? =
+        rawDir.listFiles()?.filter { matchesBuffer(it.name, buffer) }?.maxByOrNull { it.name }
 
     // Live files of the given buffers, only those of the newest session.
     fun liveFiles(buffers: List<String>): Map<String, File> {

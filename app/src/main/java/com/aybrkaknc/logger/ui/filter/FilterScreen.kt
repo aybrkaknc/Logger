@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -46,6 +47,8 @@ import com.aybrkaknc.logger.log.LogLine
 import com.aybrkaknc.logger.settings.Prefs
 import com.aybrkaknc.logger.ui.LoggerField
 import com.aybrkaknc.logger.ui.ScreenHeader
+import com.aybrkaknc.logger.ui.pulseGlow
+import com.aybrkaknc.logger.ui.recordGlow
 import com.aybrkaknc.logger.ui.theme.JetBrainsMono
 import com.aybrkaknc.logger.ui.theme.LoggerColors
 import com.aybrkaknc.logger.ui.theme.PixelCutShape
@@ -65,6 +68,14 @@ fun FilterScreen(onBack: () -> Unit) {
     var tags by remember { mutableStateOf(prefs.tags) }
     var pids by remember { mutableStateOf(prefs.pids) }
     var query by rememberSaveable { mutableStateOf("") }
+    // Edits stay in state until Apply writes them to prefs.
+    val savedPackages = remember { prefs.packages }
+    val savedLevels = remember { prefs.levels }
+    val savedShowSystem = remember { prefs.showSystem }
+    val savedTags = remember { prefs.tags }
+    val savedPids = remember { prefs.pids }
+    val changed = packages != savedPackages || levels != savedLevels || showSystem != savedShowSystem ||
+        tags != savedTags || pids != savedPids
 
     val apps by produceState(emptyList<AppInfo>()) {
         value = withContext(Dispatchers.IO) {
@@ -85,10 +96,10 @@ fun FilterScreen(onBack: () -> Unit) {
 
     fun togglePackage(pkg: String) {
         packages = if (pkg in packages) packages - pkg else packages + pkg
-        prefs.packages = packages
     }
 
-    Column(Modifier.fillMaxSize().background(LoggerColors.Bg)) {
+    Box(Modifier.fillMaxSize().background(LoggerColors.Bg)) {
+    Column(Modifier.fillMaxSize()) {
         ScreenHeader(stringResource(R.string.filter_title), onBack) {
             Text(
                 stringResource(R.string.filter_clear),
@@ -98,15 +109,10 @@ fun FilterScreen(onBack: () -> Unit) {
                 fontSize = 13.sp,
                 modifier = Modifier.clickable {
                     packages = emptySet()
-                    prefs.packages = packages
                     levels = LogLine.ALL
-                    prefs.levels = levels
                     tags = ""
-                    prefs.tags = ""
                     pids = ""
-                    prefs.pids = ""
                     showSystem = false
-                    prefs.showSystem = false
                     query = ""
                 }.padding(horizontal = 8.dp, vertical = 8.dp),
             )
@@ -118,21 +124,20 @@ fun FilterScreen(onBack: () -> Unit) {
                         for ((bit, label) in listOf(LogLine.ERROR to R.string.lvl_error, LogLine.WARN to R.string.lvl_warn, LogLine.INFO to R.string.lvl_info)) {
                             LevelChip(stringResource(label), levels and bit != 0, Modifier.weight(1f)) {
                                 levels = levels xor bit
-                                prefs.levels = levels
                             }
                         }
                     }
                     FilterCaption(stringResource(R.string.filter_group_tag))
                     LoggerField(
                         tags,
-                        { tags = it; prefs.tags = it },
+                        { tags = it },
                         stringResource(R.string.filter_tags_hint),
                         Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp),
                     )
                     FilterCaption(stringResource(R.string.filter_group_pid))
                     LoggerField(
                         pids,
-                        { pids = it; prefs.pids = it },
+                        { pids = it },
                         stringResource(R.string.filter_pids_hint),
                         Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp),
                     )
@@ -142,9 +147,8 @@ fun FilterScreen(onBack: () -> Unit) {
                 LoggerField(query, { query = it }, stringResource(R.string.filter_app_search), Modifier.padding(12.dp, 4.dp))
                 CheckRow(stringResource(R.string.filter_show_system), showSystem) {
                     showSystem = !showSystem
-                    prefs.showSystem = showSystem
                 }
-                LazyColumn(Modifier.weight(1f)) {
+                LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 72.dp)) {
                     item { Section(stringResource(R.string.filter_selected, selected.size)) }
                     items(selected, key = { "s:" + it.pkg }) { AppRow(it, true) { togglePackage(it.pkg) } }
                     item { Section(stringResource(R.string.filter_all_apps)) }
@@ -152,6 +156,27 @@ fun FilterScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+    if (changed) {
+        val glow = pulseGlow(false)
+        Box(
+            Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(16.dp)
+                .recordGlow(glow, 12.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(LoggerColors.Fg, RoundedCornerShape(12.dp))
+                .clickable {
+                    prefs.packages = packages
+                    prefs.levels = levels
+                    prefs.showSystem = showSystem
+                    prefs.tags = tags
+                    prefs.pids = pids
+                    onBack()
+                }
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+        ) {
+            Text(stringResource(R.string.filter_apply), color = LoggerColors.Bg, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        }
+    }
     }
 }
 

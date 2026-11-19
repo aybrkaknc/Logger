@@ -21,3 +21,6 @@ keystore.properties
 *.apk
 *.aab
 *.idsig
+
+# Local APK backups
+backup/

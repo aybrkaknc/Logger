@@ -41,7 +41,11 @@ class MainActivity : ComponentActivity() {
 
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
-    private val binderReceived = Shizuku.OnBinderReceivedListener { shizuku = ShizukuStatus.current() }
+    // Asking on connect makes the app show up in Shizuku's list without waiting for the first record press.
+    private val binderReceived = Shizuku.OnBinderReceivedListener {
+        shizuku = ShizukuStatus.current()
+        if (shizuku == ShizukuStatus.NO_PERMISSION) Shizuku.requestPermission(ShizukuLogcat.PERMISSION_REQUEST)
+    }
     private val binderDead = Shizuku.OnBinderDeadListener { shizuku = ShizukuStatus.current() }
     private val permissionResult = Shizuku.OnRequestPermissionResultListener { _, result ->
         shizuku = ShizukuStatus.current()
@@ -76,7 +80,7 @@ class MainActivity : ComponentActivity() {
                         onOpenFiles = { screen = Screen.Files },
                     )
                     Screen.Filter -> FilterScreen(onBack = { screen = Screen.Main })
-                    Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Main })
+                    Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Main }, shizuku = shizuku)
                     Screen.Files -> FilesScreen(
                         onBack = { screen = Screen.Main },
                         onOpen = { openFile = it; screen = Screen.LogFile },

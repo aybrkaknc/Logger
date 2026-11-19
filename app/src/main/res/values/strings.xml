@@ -8,8 +8,12 @@
     <string name="filter_none">UNFILTERED</string>
     <string name="filter_text_hint">Search text</string>
     <string name="empty_logs">No logs yet.\n1. Start Shizuku.\n2. Press the record button.</string>
-    <string name="shizuku_ok">SHIZUKU</string>
-    <string name="shizuku_missing">NO SHIZUKU</string>
+    <string name="settings_shizuku">Shizuku</string>
+    <string name="settings_root">Root</string>
+    <string name="shizuku_state_no_permission">Permission needed</string>
+    <string name="shizuku_state_not_running">Not running</string>
+    <string name="shizuku_connected">Connected</string>
+    <string name="shizuku_disconnected">Not connected</string>
     <string name="shizuku_not_running">Shizuku is not running.\nStart Shizuku first.</string>
     <string name="shizuku_denied">Shizuku permission was not granted.</string>
     <string name="action_start">Start recording</string>
@@ -24,6 +28,9 @@
     <string name="files_title">Saved logs</string>
     <string name="files_search_hint">Search by date (e.g. 20261117)</string>
     <string name="files_empty">No exported logs yet.</string>
+    <string name="files_selected">%1$d selected</string>
+    <string name="action_select_all">Select all</string>
+    <string name="delete_many_text">Delete %1$d selected logs? This cannot be undone.</string>
     <string name="files_count">%1$d files</string>
     <string name="delete_title">Delete this file?</string>
     <string name="delete_text">%1$s will be permanently deleted.</string>
@@ -35,7 +42,6 @@
     <string name="paused">PAUSED</string>
     <string name="search_prev">Previous match</string>
     <string name="search_next">Next match</string>
-    <string name="select_mode">Multi-select</string>
     <string name="selected_count">%1$d selected</string>
     <string name="share_plain">Share</string>
     <string name="cancel">Cancel</string>
@@ -51,7 +57,6 @@
     <!-- Entry menu -->
     <string name="copy_entry">Copy</string>
     <string name="copied">Copied</string>
-    <string name="select_text">Select text</string>
     <string name="close">Close</string>
     <string name="prompt_template">Explain this Android log entry, state the likely causes and what should be done:\n\n%1$s</string>
 
@@ -70,7 +75,8 @@
 
     <!-- Filter screen -->
     <string name="filter_title">Filter</string>
-    <string name="filter_clear">Clear</string>
+    <string name="filter_clear">Reset</string>
+    <string name="filter_apply">Apply</string>
     <string name="filter_app_search">Search apps</string>
     <string name="filter_show_system">Show system apps</string>
     <string name="filter_selected">SELECTED (%1$d)</string>
@@ -78,6 +84,7 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="action_restart">Restart</string>
     <string name="settings_max_size">Maximum log size</string>
     <string name="settings_font_size">Log text size (sp)</string>
     <string name="settings_output">Output folder</string>
@@ -88,6 +95,9 @@
     <string name="notif_crash_title">Crash logged</string>
     <string name="settings_single_line">Single-line log rows</string>
     <string name="settings_crash_alert">Crash alerts</string>
+    <string name="settings_section_access">Access</string>
+    <string name="settings_section_recording">Recording</string>
+    <string name="settings_section_display">Display</string>
     <string name="onoff_on">On</string>
     <string name="onoff_off">Off</string>
     <string name="lang_system">System default</string>
@@ -107,4 +117,13 @@
     <string name="action_save">Save logs now</string>
     <string name="save_done">Saved: %1$s\n%2$s</string>
     <string name="save_empty">No logs to save yet</string>
+    <string name="field_date">Date</string>
+    <string name="field_time">Time</string>
+    <string name="field_uid">UID</string>
+    <string name="field_pid">PID</string>
+    <string name="field_tid">TID</string>
+    <string name="field_level">Level</string>
+    <string name="field_tag">Tag</string>
+    <string name="field_app">App</string>
+    <string name="field_message">Message</string>
 </resources>
