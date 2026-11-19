@@ -51,7 +51,7 @@ Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmen
 * Log satırı biçimi: `SS:DD:SS - SEVİYE - Uygulama`; çökme ve ANR için kısa açıklamalar
 * Ayarlanabilir en yüksek log boyutu (1-10 GB) ve log yazı boyutu
 * Logları seçtiğiniz çıktı klasörüne kaydet; her tampon için ayrı klasör ve tüm tamponlar için all klasörü oluşur, her kayıt ayrı dosya olur
-* Ek tamponları (radio, events, security, stats, kernel) seçip her birini sekme olarak görüntüle; ALL açık tüm tamponları birleştirir
+* Ek tamponları (radio, events, security, stats) kaydet; hangi tamponların gösterileceğini filtre ekranından seç
 * Kayıt sürerken durdurmadan anlık kayıt al
 * Kayıtlı logları uygulama içinde ara, paylaş veya sil
 * İngilizce ve Türkçe arayüz
@@ -102,7 +102,7 @@ Logger, cihazın logcat çıktısını bir ön plan servisinde kaydeder; süzmen
 2. Logger'ı açıp kayıt düğmesine basın, ardından Shizuku iznini verin.
 3. Filtre ekranından logları uygulamaya veya seviyeye göre daraltın.
 4. Kaydı uygulamadan ya da bildirimden durdurun veya devam ettirin.
-5. Ayarlardan ek tamponları seçin ve ana ekrandaki sekmeler arasında geçiş yapın.
+5. Ayarlardan ek tamponları seçin, ardından filtre ekranından hangi tamponların gösterileceğini belirleyin.
 6. Kayıt sürerken kaydet düğmesiyle o ana kadarki logları çıktı klasörüne kopyalayın.
 7. Klasör simgesiyle kayıtlı logları görüntüleyin, arayın, paylaşın veya silin.
 

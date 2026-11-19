@@ -1,0 +1,5 @@
+Filtre ekranı gösterilecek tamponları seçer; sekme çubuğu kaldırıldı.
+Her tampon kendi klasörüne, ayrıca all klasörüne kaydedilir.
+Kayıt sırasında 5 ile 60 dakika arasında otomatik kaydetme.
+Ayarlarda Shizuku ve Root durumu.
+Ekran geçişleri, başlık ve logo efektleri.

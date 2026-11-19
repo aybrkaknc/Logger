@@ -1,0 +1,1 @@
+Logcat recorder for Android, using Shizuku

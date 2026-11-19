@@ -1,0 +1,13 @@
+Logger, sistemin logcat çıktısını bir ön plan servisinde kaydeder; süzmenizi, kaydetmenizi ve gözden geçirmenizi sağlar. Logları Shizuku üzerinden okur, bu yüzden telefonda root gerekmez.
+
+Özellikler:
+- Ana, sistem ve çökme tamponlarını; isterseniz radio, events, security ve stats tamponlarını kaydetme
+- Her tampon kendi klasörüne, tüm loglar ise all klasörüne kaydedilir
+- Uygulamaya, seviyeye, etikete ve PID'ye göre süzme; hangi tamponların gösterileceğini seçme
+- Canlı görünümde arama, duraklatma ve temizleme
+- Çalışan kaydın anlık kopyasını alma veya her birkaç dakikada bir otomatik kaydetme
+- Kayıtlı logları uygulama içinde gözden geçirme, arama, paylaşma ve silme
+- İsteğe bağlı çökme ve ANR bildirimleri
+
+Gereksinimler:
+- Shizuku kurulu ve çalışır durumda, Logger'a izin verilmiş olmalı

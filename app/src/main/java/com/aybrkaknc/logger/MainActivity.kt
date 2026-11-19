@@ -7,6 +7,12 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -71,7 +77,20 @@ class MainActivity : ComponentActivity() {
                 var screen by rememberSaveable { mutableStateOf(Screen.Main) }
                 var openFile by remember { mutableStateOf<LogFileItem?>(null) }
                 BackHandler(enabled = screen != Screen.Main) { screen = Screen.Main }
-                when (screen) {
+                // Forward slides in from the right; going back slides in from the left.
+                AnimatedContent(
+                    targetState = screen,
+                    transitionSpec = {
+                        val back = targetState == Screen.Main || (initialState == Screen.LogFile && targetState == Screen.Files)
+                        if (back) {
+                            slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+                        } else {
+                            slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                        }
+                    },
+                    label = "screen",
+                ) { target ->
+                when (target) {
                     Screen.Main -> MainScreen(
                         shizuku = shizuku,
                         onToggle = ::toggleRecording,
@@ -86,6 +105,7 @@ class MainActivity : ComponentActivity() {
                         onOpen = { openFile = it; screen = Screen.LogFile },
                     )
                     Screen.LogFile -> openFile?.let { LogFileScreen(it, onBack = { screen = Screen.Files }) }
+                }
                 }
             }
         }

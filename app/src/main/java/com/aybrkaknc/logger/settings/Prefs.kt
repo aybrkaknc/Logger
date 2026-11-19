@@ -56,6 +56,20 @@ class Prefs(context: Context) {
         get() = settings.getBoolean(KEY_SINGLE_LINE, false)
         set(v) = settings.edit { putBoolean(KEY_SINGLE_LINE, v) }
 
+    // Minutes between automatic saves while recording; 0 turns them off.
+    var autoSaveMinutes: Int
+        get() = settings.getInt(KEY_AUTOSAVE, 0)
+        set(v) = settings.edit { putInt(KEY_AUTOSAVE, v) }
+
+    // Buffers shown in the log list, chosen on the filter screen; all recorded buffers by default.
+    var shownBuffers: List<String>
+        get() {
+            val recorded = (CORE_BUFFERS + buffers).distinct()
+            val stored = settings.getString(KEY_SHOWN, null) ?: return recorded
+            return stored.split(',').filter { it in recorded }
+        }
+        set(v) = settings.edit { putString(KEY_SHOWN, v.joinToString(",")) }
+
     // Notification when a crash (FATAL EXCEPTION) or ANR is logged.
     var crashAlert: Boolean
         get() = settings.getBoolean(KEY_CRASH_ALERT, true)
@@ -64,7 +78,7 @@ class Prefs(context: Context) {
     // Buffers to read, e.g. "main,system,crash,radio". main/system/crash are always on.
     var buffers: List<String>
         get() = (settings.getString(KEY_BUFFERS, DEFAULT_BUFFERS) ?: DEFAULT_BUFFERS)
-            .split(',').map { it.trim() }.filter { it.isNotEmpty() }
+            .split(',').map { it.trim() }.filter { it in CORE_BUFFERS || it in EXTRA_BUFFERS }
         set(v) = settings.edit { putString(KEY_BUFFERS, v.joinToString(",")) }
 
     var showSystem: Boolean
@@ -83,8 +97,10 @@ class Prefs(context: Context) {
         const val KEY_BUFFERS = "buffers"
         const val DEFAULT_BUFFERS = "main,system,crash"
         val CORE_BUFFERS = listOf("main", "system", "crash")
-        val EXTRA_BUFFERS = listOf("radio", "events", "security", "stats", "kernel")
+        val EXTRA_BUFFERS = listOf("radio", "events", "security", "stats")
         const val KEY_SINGLE_LINE = "single_line"
+        const val KEY_AUTOSAVE = "autosave_minutes"
+        const val KEY_SHOWN = "shown_buffers"
         const val KEY_CRASH_ALERT = "crash_alert"
         const val KEY_LANGUAGE = "language"
         const val KEY_TAGS = "tags"

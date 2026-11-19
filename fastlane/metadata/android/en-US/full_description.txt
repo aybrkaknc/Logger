@@ -1,0 +1,13 @@
+Logger records the system logcat in a foreground service and lets you filter, save and browse it. It reads logs through Shizuku, so the phone does not need root.
+
+Features:
+- Record the main, system and crash buffers, plus optional radio, events, security and stats buffers
+- Each buffer is saved to its own folder, and the combined log goes to an all folder
+- Filter by app, level, tag and PID; choose which buffers to show
+- Search, pause and clear the live view
+- Save a snapshot of a running recording, or save automatically every few minutes
+- Browse, search, share and delete saved logs inside the app
+- Optional crash and ANR alerts
+
+Requirements:
+- Shizuku installed and running, with permission granted to Logger

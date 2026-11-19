@@ -51,7 +51,7 @@ Logger records the device logcat in a foreground service and lets you filter, sa
 * Log line format: `HH:MM:SS - LEVEL - App`, with short explanations for crashes and ANRs
 * Configurable maximum log size (1-10 GB) and log text size
 * Save logs to the folder you choose: one folder per buffer and an all folder, one file per recording
-* Record extra buffers (radio, events, security, stats, kernel) and view each as a tab; ALL merges every open buffer
+* Record extra buffers (radio, events, security, stats); the filter screen picks which buffers are shown
 * Save a snapshot of a running recording without stopping it
 * Browse, search, share and delete saved logs inside the app
 * English and Turkish UI
@@ -102,7 +102,7 @@ For a signed release build, copy `keystore.properties.example` to `keystore.prop
 2. Open Logger and press the record button, then grant the Shizuku permission.
 3. Use the filter screen to narrow logs by app or level.
 4. Stop or resume recording from the app or the notification.
-5. Pick extra buffers in Settings and switch between the tabs on the main screen.
+5. Pick extra buffers in Settings, then choose which buffers to show on the filter screen.
 6. Use the save button while recording to copy the logs so far to the output folder.
 7. Open the folder icon to browse, search, share or delete saved logs.
 

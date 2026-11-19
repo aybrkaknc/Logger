@@ -77,6 +77,7 @@
     <string name="filter_title">Filter</string>
     <string name="filter_clear">Reset</string>
     <string name="filter_apply">Apply</string>
+    <string name="filter_group_buffers">Buffers</string>
     <string name="filter_app_search">Search apps</string>
     <string name="filter_show_system">Show system apps</string>
     <string name="filter_selected">SELECTED (%1$d)</string>
@@ -94,6 +95,9 @@
     <string name="notif_crash_channel">Crashes</string>
     <string name="notif_crash_title">Crash logged</string>
     <string name="settings_single_line">Single-line log rows</string>
+    <string name="settings_autosave">Auto-save</string>
+    <string name="autosave_off">Off</string>
+    <string name="autosave_minutes">%1$d min</string>
     <string name="settings_crash_alert">Crash alerts</string>
     <string name="settings_section_access">Access</string>
     <string name="settings_section_recording">Recording</string>
@@ -112,8 +116,7 @@
     <string name="notif_action_stop">Stop</string>
     <string name="notif_action_resume">Resume</string>
     <string name="settings_buffers">Log buffers</string>
-    <string name="buffers_note">Selected buffers appear as tabs and are added to the recording. main, system and crash are always on. radio may contain phone numbers. Changes apply to the next recording.</string>
-    <string name="empty_buffer">No logs in this buffer yet.</string>
+    <string name="buffers_note">Selected buffers are added to the recording. Choose which ones to show on the filter screen. main, system and crash are always on. radio may contain phone numbers. Changes apply to the next recording.</string>
     <string name="action_save">Save logs now</string>
     <string name="save_done">Saved: %1$s\n%2$s</string>
     <string name="save_empty">No logs to save yet</string>

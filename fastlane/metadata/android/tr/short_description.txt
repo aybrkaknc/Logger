@@ -1,0 +1,1 @@
+Shizuku ile çalışan Android logcat kayıt uygulaması

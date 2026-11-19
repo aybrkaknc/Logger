@@ -66,6 +66,16 @@ class LogService : Service() {
         sessionBase = base
         sessionBuffers = buffers
         worker = thread(name = "logcat") { readAll(base, buffers) }
+        val every = prefs.autoSaveMinutes
+        if (every > 0) thread(name = "autosave") { autoSave(base, buffers, every) }
+    }
+
+    // Copies the recording so far every few minutes, so a kill loses at most one interval.
+    private fun autoSave(base: String, buffers: List<String>, minutes: Int) {
+        while (_running.value) {
+            Thread.sleep(minutes * 60_000L)
+            if (_running.value) exportSession(base, repo.newSessionBase(), buffers)
+        }
     }
 
     // Copies what has been recorded so far to the output folder under a new timestamp; recording goes on.

@@ -1,0 +1,5 @@
+Filter screen picks the buffers to show; the tab bar is gone.
+Each buffer is saved to its own folder, plus an all folder.
+Auto-save every 5 to 60 minutes while recording.
+Shizuku and Root status in settings.
+Screen transitions, title and logo effects.

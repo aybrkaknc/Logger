@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -26,13 +27,17 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -49,6 +54,8 @@ import com.aybrkaknc.logger.R
 import com.aybrkaknc.logger.ui.theme.JetBrainsMono
 import com.aybrkaknc.logger.ui.theme.LoggerColors
 import com.aybrkaknc.logger.ui.theme.TitleStyle
+import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 @Composable
 // Press feedback: the button shrinks slightly and flashes solid green with a black icon while held.
@@ -81,17 +88,65 @@ fun ScreenHeader(title: String, onBack: () -> Unit, action: (@Composable () -> U
     ) {
         IconBtn(R.drawable.ic_back, R.string.action_back, onBack)
         Spacer(Modifier.width(8.dp))
-        var titleSize by remember(title) { mutableStateOf(TitleStyle.fontSize) }
+        Title(title)
+        Spacer(Modifier.weight(1f))
+        action?.invoke()
+    }
+}
+
+// Screen tearing: while tear is non-zero, a few horizontal bands of the content slide sideways.
+fun Modifier.tearing(tear: Int): Modifier = drawWithContent {
+    if (tear == 0) {
+        drawContent()
+    } else {
+        val rnd = Random(tear)
+        repeat(4) {
+            val top = rnd.nextFloat() * size.height
+            val bandHeight = 2.dp.toPx() + rnd.nextFloat() * size.height * 0.2f
+            val dx = rnd.nextInt(-6, 7).dp.toPx()
+            withTransform({
+                clipRect(0f, top, size.width, top + bandHeight)
+                translate(dx, 0f)
+            }) {
+                this@drawWithContent.drawContent()
+            }
+        }
+    }
+}
+
+// Terminal-style glitch: now and then the title tears and red and cyan copies shift out to the sides.
+@Composable
+private fun Title(title: String) {
+    var titleSize by remember(title) { mutableStateOf(TitleStyle.fontSize) }
+    var shift by remember { mutableIntStateOf(0) }
+    var tear by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(Random.nextLong(2500, 5000))
+            repeat(3) {
+                shift = Random.nextInt(1, 4)
+                tear = Random.nextInt(1, Int.MAX_VALUE)
+                delay(60)
+            }
+            shift = 0
+            tear = 0
+        }
+    }
+    val style = TitleStyle.copy(fontSize = titleSize)
+    Box {
+        if (shift > 0) {
+            Text(title, style = style.copy(color = LoggerColors.Red), maxLines = 1, softWrap = false, modifier = Modifier.offset(x = (-shift).dp))
+            Text(title, style = style.copy(color = LoggerColors.Cyan), maxLines = 1, softWrap = false, modifier = Modifier.offset(x = shift.dp))
+        }
         Text(
             title,
-            style = TitleStyle.copy(fontSize = titleSize),
+            style = style,
             maxLines = 1,
             softWrap = false,
+            modifier = Modifier.tearing(tear),
             // Shrinks the title step by step until it fits the row on one line.
             onTextLayout = { if (it.hasVisualOverflow && titleSize > 12.sp) titleSize *= 0.9f },
         )
-        Spacer(Modifier.weight(1f))
-        action?.invoke()
     }
 }
 

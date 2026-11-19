@@ -67,6 +67,8 @@ fun FilterScreen(onBack: () -> Unit) {
     var showSystem by remember { mutableStateOf(prefs.showSystem) }
     var tags by remember { mutableStateOf(prefs.tags) }
     var pids by remember { mutableStateOf(prefs.pids) }
+    var shown by remember { mutableStateOf(prefs.shownBuffers) }
+    val recorded = remember { (Prefs.CORE_BUFFERS + prefs.buffers).distinct() }
     var query by rememberSaveable { mutableStateOf("") }
     // Edits stay in state until Apply writes them to prefs.
     val savedPackages = remember { prefs.packages }
@@ -74,8 +76,9 @@ fun FilterScreen(onBack: () -> Unit) {
     val savedShowSystem = remember { prefs.showSystem }
     val savedTags = remember { prefs.tags }
     val savedPids = remember { prefs.pids }
+    val savedShown = remember { prefs.shownBuffers }
     val changed = packages != savedPackages || levels != savedLevels || showSystem != savedShowSystem ||
-        tags != savedTags || pids != savedPids
+        tags != savedTags || pids != savedPids || shown != savedShown
 
     val apps by produceState(emptyList<AppInfo>()) {
         value = withContext(Dispatchers.IO) {
@@ -112,6 +115,7 @@ fun FilterScreen(onBack: () -> Unit) {
                     levels = LogLine.ALL
                     tags = ""
                     pids = ""
+                    shown = recorded
                     showSystem = false
                     query = ""
                 }.padding(horizontal = 8.dp, vertical = 8.dp),
@@ -125,6 +129,22 @@ fun FilterScreen(onBack: () -> Unit) {
                             LevelChip(stringResource(label), levels and bit != 0, Modifier.weight(1f)) {
                                 levels = levels xor bit
                             }
+                        }
+                    }
+                    FilterCaption(stringResource(R.string.filter_group_buffers))
+                    for (row in recorded.chunked(3)) {
+                        Row(Modifier.padding(horizontal = 12.dp)) {
+                            for (b in row) {
+                                Text(
+                                    (if (b in shown) "[x] " else "[ ] ") + b,
+                                    color = if (b in shown) LoggerColors.Fg else LoggerColors.Dim,
+                                    fontFamily = JetBrainsMono,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.weight(1f).clickable { shown = if (b in shown) shown - b else shown + b }.padding(vertical = 6.dp),
+                                )
+                            }
+                            // Keeps the columns aligned on a short last row.
+                            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                         }
                     }
                     FilterCaption(stringResource(R.string.filter_group_tag))
@@ -170,6 +190,7 @@ fun FilterScreen(onBack: () -> Unit) {
                     prefs.showSystem = showSystem
                     prefs.tags = tags
                     prefs.pids = pids
+                    prefs.shownBuffers = shown
                     onBack()
                 }
                 .padding(horizontal = 24.dp, vertical = 12.dp),

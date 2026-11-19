@@ -77,6 +77,7 @@
     <string name="filter_title">Filtre</string>
     <string name="filter_clear">Sıfırla</string>
     <string name="filter_apply">Uygula</string>
+    <string name="filter_group_buffers">Tamponlar</string>
     <string name="filter_app_search">Uygulama ara</string>
     <string name="filter_show_system">Sistem uygulamalarını göster</string>
     <string name="filter_selected">SEÇİLİ (%1$d)</string>
@@ -94,6 +95,9 @@
     <string name="notif_crash_channel">Çökmeler</string>
     <string name="notif_crash_title">Çökme kaydedildi</string>
     <string name="settings_single_line">Log satırlarını tek satırda göster</string>
+    <string name="settings_autosave">Otomatik kaydet</string>
+    <string name="autosave_off">Kapalı</string>
+    <string name="autosave_minutes">%1$d dk</string>
     <string name="settings_crash_alert">Çökme bildirimleri</string>
     <string name="settings_section_access">Erişim</string>
     <string name="settings_section_recording">Kayıt</string>
@@ -112,8 +116,7 @@
     <string name="notif_action_stop">Durdur</string>
     <string name="notif_action_resume">Devam et</string>
     <string name="settings_buffers">Görüntülenecek tamponlar</string>
-    <string name="buffers_note">Seçtiğin tamponlar sekme olarak görünür ve kayda eklenir. main, system ve crash her zaman açıktır. radio telefon numaraları içerebilir. Değişiklik sonraki kayıtta geçerli olur.</string>
-    <string name="empty_buffer">Bu tamponda henüz log yok.</string>
+    <string name="buffers_note">Seçtiğin tamponlar kayda eklenir. Hangilerinin gösterileceğini filtre ekranından seçebilirsin. main, system ve crash her zaman açıktır. radio telefon numaraları içerebilir. Değişiklik sonraki kayıtta geçerli olur.</string>
     <string name="action_save">Kaydet</string>
     <string name="save_done">Kaydedildi: %1$s\n%2$s</string>
     <string name="save_empty">Kaydedilecek log yok</string>

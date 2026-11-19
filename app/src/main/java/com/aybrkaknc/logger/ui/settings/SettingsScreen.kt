@@ -43,11 +43,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import rikka.shizuku.Shizuku
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aybrkaknc.logger.R
+import com.aybrkaknc.logger.service.ShizukuLogcat
 import com.aybrkaknc.logger.service.ShizukuStatus
 import com.aybrkaknc.logger.settings.Prefs
 import com.aybrkaknc.logger.ui.IconBtn
@@ -58,9 +60,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class Sheet { MaxSize, FontSize }
+private enum class Sheet { MaxSize, FontSize, AutoSave }
 
 private const val MAX_GB = 10
+
+// Auto-save choices in minutes; 0 is off.
+private val AUTOSAVE_STEPS = listOf(0, 5, 15, 30, 60)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +79,7 @@ fun SettingsScreen(onBack: () -> Unit, shizuku: ShizukuStatus) {
     var language by remember { mutableStateOf(prefs.language) }
     var langOpen by remember { mutableStateOf(false) }
     var singleLine by remember { mutableStateOf(prefs.singleLine) }
+    var autoSave by remember { mutableIntStateOf(prefs.autoSaveMinutes) }
     var crashAlert by remember { mutableStateOf(prefs.crashAlert) }
     var buffers by remember { mutableStateOf(prefs.buffers) }
     var buffersOpen by remember { mutableStateOf(false) }
@@ -100,7 +106,10 @@ fun SettingsScreen(onBack: () -> Unit, shizuku: ShizukuStatus) {
             ShizukuStatus.NO_PERMISSION -> R.string.shizuku_state_no_permission
             ShizukuStatus.NOT_RUNNING -> R.string.shizuku_state_not_running
         }
-        StatusRow(stringResource(R.string.settings_shizuku), shizukuState, shizuku != ShizukuStatus.NOT_RUNNING) { openShizuku(context) }
+        StatusRow(stringResource(R.string.settings_shizuku), shizukuState, shizuku != ShizukuStatus.NOT_RUNNING) {
+            // Without permission the tap asks for it, so the app shows up in Shizuku's list.
+            if (shizuku == ShizukuStatus.NO_PERMISSION) Shizuku.requestPermission(ShizukuLogcat.PERMISSION_REQUEST) else openShizuku(context)
+        }
         // Root is checked when the screen opens and again on every tap of the row.
         var rooted by remember { mutableStateOf(false) }
         val scope = rememberCoroutineScope()
@@ -111,6 +120,10 @@ fun SettingsScreen(onBack: () -> Unit, shizuku: ShizukuStatus) {
         SectionHeader(stringResource(R.string.settings_section_recording))
         SettingRow(stringResource(R.string.settings_max_size), stringResource(R.string.size_gb, maxGb)) { sheet = Sheet.MaxSize }
         SettingRow(stringResource(R.string.settings_output), folder) { picker.launch(null) }
+        SettingRow(
+            stringResource(R.string.settings_autosave),
+            if (autoSave == 0) stringResource(R.string.autosave_off) else stringResource(R.string.autosave_minutes, autoSave),
+        ) { sheet = Sheet.AutoSave }
         SettingRow(stringResource(R.string.settings_buffers), (Prefs.CORE_BUFFERS + buffers).distinct().joinToString(", ")) { buffersOpen = true }
         SwitchRow(stringResource(R.string.settings_crash_alert), crashAlert) {
             crashAlert = it
@@ -181,6 +194,11 @@ fun SettingsScreen(onBack: () -> Unit, shizuku: ShizukuStatus) {
                 (Prefs.FONT_MIN..Prefs.FONT_MAX).map { it.toString() },
                 fontSp - Prefs.FONT_MIN,
             )
+            Sheet.AutoSave -> Triple(
+                stringResource(R.string.settings_autosave),
+                AUTOSAVE_STEPS.map { if (it == 0) context.getString(R.string.autosave_off) else context.getString(R.string.autosave_minutes, it) },
+                AUTOSAVE_STEPS.indexOf(autoSave),
+            )
         }
         var picked by remember(current) { mutableIntStateOf(initial) }
         ModalBottomSheet(onDismissRequest = { sheet = null }, containerColor = LoggerColors.Panel) {
@@ -198,6 +216,10 @@ fun SettingsScreen(onBack: () -> Unit, shizuku: ShizukuStatus) {
                             Sheet.FontSize -> {
                                 fontSp = picked + Prefs.FONT_MIN
                                 prefs.fontSp = fontSp
+                            }
+                            Sheet.AutoSave -> {
+                                autoSave = AUTOSAVE_STEPS[picked]
+                                prefs.autoSaveMinutes = autoSave
                             }
                         }
                         sheet = null
